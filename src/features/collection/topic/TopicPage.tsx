@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { Asset, AssetType, Folder } from '../../../domain/models'
 import { downloadBlob, openBlobInNewTab } from '../../../lib/blob'
+import { exerciseRepo } from '../../../repositories'
 import { useAssetsStore } from '../../../stores/assetsStore'
 import { useActiveSessionStore } from '../../../stores/activeSessionStore'
 import { useFoldersStore } from '../../../stores/foldersStore'
@@ -117,6 +118,30 @@ export function TopicPage() {
     if (assetFilter === 'all') return assets
     return assets.filter((a) => a.type === assetFilter)
   }, [assets, assetFilter])
+
+  const [exerciseStatusByAssetId, setExerciseStatusByAssetId] = useState<Record<string, 'unknown' | 'partial' | 'captured' | 'covered'>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    async function run() {
+      const exerciseIds = assets.filter((a) => a.type === 'exercise').map((a) => a.id)
+      if (exerciseIds.length === 0) {
+        if (!cancelled) setExerciseStatusByAssetId({})
+        return
+      }
+      const pairs = await Promise.all(
+        exerciseIds.map(async (id) => {
+          const ex = await exerciseRepo.getByAsset(id)
+          return [id, ex?.status ?? 'unknown'] as const
+        }),
+      )
+      if (!cancelled) setExerciseStatusByAssetId(Object.fromEntries(pairs))
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [assets])
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
@@ -351,6 +376,7 @@ export function TopicPage() {
                   folderLabel={
                     a.folderId ? folderNameById.get(a.folderId) ?? '—' : '(Root)'
                   }
+                  exerciseStatus={a.type === 'exercise' ? exerciseStatusByAssetId[a.id] : undefined}
                   onOpen={() => void openAsset(a)}
                   onDownload={() => void downloadAsset(a)}
                   onDelete={() => {

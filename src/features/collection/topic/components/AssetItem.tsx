@@ -1,10 +1,11 @@
 import { Download, ExternalLink, Trash2 } from 'lucide-react'
-import type { Asset } from '../../../../domain/models'
+import type { Asset, ExercisePageStatus } from '../../../../domain/models'
 import { assetTypeLabel } from '../utils/assetTypeLabel'
 
 export function AssetItem(props: {
   asset: Asset
   folderLabel: string
+  exerciseStatus?: ExercisePageStatus
   onOpen: () => void
   onDownload: () => void
   onDelete: () => void
@@ -21,6 +22,11 @@ export function AssetItem(props: {
           <span className="rounded bg-slate-900 px-2 py-0.5">
             {assetTypeLabel(a.type)}
           </span>
+          {a.type === 'exercise' ? (
+            <span className="rounded bg-slate-900 px-2 py-0.5">
+              Status: {props.exerciseStatus ?? 'unknown'}
+            </span>
+          ) : null}
           <span className="rounded bg-slate-900 px-2 py-0.5">
             Folder: {props.folderLabel}
           </span>

@@ -9,7 +9,7 @@ type PanelView = 'default' | 'review' | 'next'
 export function FloatingQuickLogPanel(props: {
   assetId: string
   pageNumber: number
-  pageStatus: ExercisePageStatus
+  exerciseStatus: ExercisePageStatus
   problemIdx: number
   subproblemLabel: string
   attemptStartedAtMs: number | null
@@ -24,7 +24,8 @@ export function FloatingQuickLogPanel(props: {
   }) => Promise<void> | void
   onNextSubproblem: () => void
   onNewProblem: () => void
-  onMarkPageDone: () => void
+  onMarkProgress: () => void
+  onFinishExercise: () => void
 }) {
   const [nowMs, setNowMs] = useState(() => Date.now())
 
@@ -48,7 +49,7 @@ export function FloatingQuickLogPanel(props: {
         {view === 'default' ? (
           <DefaultView
             pageNumber={props.pageNumber}
-            pageStatus={props.pageStatus}
+            exerciseStatus={props.exerciseStatus}
             problemIdx={props.problemIdx}
             subproblemLabel={props.subproblemLabel}
             seconds={seconds}
@@ -88,8 +89,12 @@ export function FloatingQuickLogPanel(props: {
               props.onNewProblem()
               setView('default')
             }}
-            onMarkPageDone={() => {
-              props.onMarkPageDone()
+            onMarkProgress={() => {
+              props.onMarkProgress()
+              setView('default')
+            }}
+            onFinishExercise={() => {
+              props.onFinishExercise()
               setView('default')
             }}
           />

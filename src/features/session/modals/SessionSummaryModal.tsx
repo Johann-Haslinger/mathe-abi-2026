@@ -30,7 +30,7 @@ export function SessionSummaryModal(props: {
 
   const message = useMotivationMessage(stats)
 
-  const groups = useSessionPageGroups(details, assetTitleById)
+  const groups = useSessionExerciseGroups(details, assetTitleById)
   const [expandedKey, setExpandedKey] = useExpandedGroupKey(props.open, groups.map((g) => g.key))
 
   return (
@@ -69,11 +69,11 @@ export function SessionSummaryModal(props: {
 
             <div className="mt-4 space-y-2">
               <div className="text-xs font-semibold text-slate-400">
-                Bearbeitete Seiten
+                Bearbeitete Übungen
               </div>
               {groups.length === 0 ? (
                 <div className="text-sm text-slate-400">
-                  Keine Seiten bearbeitet (keine Attempts).
+                  Keine Übungen bearbeitet (keine Attempts).
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -156,7 +156,6 @@ function useSessionSummaryData(open: boolean, summary: SessionSummaryState | nul
     Array<{
       attempt: Attempt
       assetId: string
-      pageNumber: number
       problemIdx: number
       subproblemLabel: string
     }>
@@ -248,11 +247,10 @@ function useMotivationMessage(stats: {
   }, [stats.attempts, stats.correct, stats.wrong])
 }
 
-function useSessionPageGroups(
+function useSessionExerciseGroups(
   details: Array<{
     attempt: Attempt
     assetId: string
-    pageNumber: number
     problemIdx: number
     subproblemLabel: string
   }>,
@@ -267,7 +265,6 @@ function useSessionPageGroups(
     type Group = {
       key: string
       assetId: string
-      pageNumber: number
       title: string
       rows: Row[]
       stats: { attempts: number; correct: number; partial: number; wrong: number; workSeconds: number }
@@ -275,8 +272,8 @@ function useSessionPageGroups(
 
     const map = new Map<string, Group>()
     for (const d of details) {
-      const key = `${d.assetId}:${d.pageNumber}`
-      const title = `${assetTitleById[d.assetId] ?? 'Übung'} · Seite ${d.pageNumber}`
+      const key = `${d.assetId}`
+      const title = `${assetTitleById[d.assetId] ?? 'Übung'}`
       const existing = map.get(key)
       const row: Row = {
         attempt: d.attempt,
@@ -287,7 +284,6 @@ function useSessionPageGroups(
         map.set(key, {
           key,
           assetId: d.assetId,
-          pageNumber: d.pageNumber,
           title,
           rows: [row],
           stats: {
@@ -312,11 +308,7 @@ function useSessionPageGroups(
       g.stats.wrong = g.rows.filter((r) => r.attempt.result === 'wrong').length
       g.stats.workSeconds = g.rows.reduce((acc, r) => acc + r.attempt.seconds, 0)
     }
-    // earliest page first (deterministic)
-    groups.sort((a, b) => {
-      if (a.assetId !== b.assetId) return a.assetId.localeCompare(b.assetId)
-      return a.pageNumber - b.pageNumber
-    })
+    groups.sort((a, b) => a.title.localeCompare(b.title))
     return groups
   }, [details, assetTitleById])
 }

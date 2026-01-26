@@ -7,7 +7,7 @@ import {
 } from './local/LocalRepositories'
 import {
   LocalAttemptRepository,
-  LocalExercisePageRepository,
+  LocalExerciseRepository,
   LocalProblemRepository,
   LocalStudySessionRepository,
   LocalSubproblemRepository,
@@ -20,7 +20,7 @@ export const assetRepo = new LocalAssetRepository()
 export const assetFileStore = new IndexedDbAssetFileStore()
 
 export const studySessionRepo = new LocalStudySessionRepository()
-export const exercisePageRepo = new LocalExercisePageRepository()
+export const exerciseRepo = new LocalExerciseRepository()
 export const problemRepo = new LocalProblemRepository()
 export const subproblemRepo = new LocalSubproblemRepository()
 export const attemptRepo = new LocalAttemptRepository()

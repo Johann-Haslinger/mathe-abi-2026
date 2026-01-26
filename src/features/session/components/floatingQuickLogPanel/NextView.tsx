@@ -1,7 +1,8 @@
 export function NextView(props: {
   onNextSubproblem: () => void
   onNewProblem: () => void
-  onMarkPageDone: () => void
+  onMarkProgress: () => void
+  onFinishExercise: () => void
 }) {
   return (
     <div className="space-y-3">
@@ -23,10 +24,17 @@ export function NextView(props: {
         </button>
         <button
           type="button"
-          onClick={props.onMarkPageDone}
+          onClick={props.onMarkProgress}
           className="rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-50 hover:bg-slate-700"
         >
-          Seite fertig
+          Zwischenstand
+        </button>
+        <button
+          type="button"
+          onClick={props.onFinishExercise}
+          className="ml-auto rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+        >
+          Übung fertig
         </button>
       </div>
     </div>

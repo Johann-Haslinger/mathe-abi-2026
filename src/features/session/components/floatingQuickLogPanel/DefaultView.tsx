@@ -3,7 +3,7 @@ import type { ExercisePageStatus } from '../../../../domain/models'
 
 export function DefaultView(props: {
   pageNumber: number
-  pageStatus: ExercisePageStatus
+  exerciseStatus: ExercisePageStatus
   problemIdx: number
   subproblemLabel: string
   seconds: number
@@ -24,7 +24,7 @@ export function DefaultView(props: {
               Seite: {props.pageNumber}
             </span>
             <span className="rounded bg-slate-900 px-2 py-0.5">
-              Status: {props.pageStatus}
+              Übung: {props.exerciseStatus}
             </span>
           </div>
         </div>

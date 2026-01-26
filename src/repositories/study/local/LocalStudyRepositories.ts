@@ -1,9 +1,9 @@
 import { db } from '../../../db/db'
-import type { ExercisePage, Problem, StudySession, Subproblem, Attempt } from '../../../domain/models'
+import type { Exercise, Problem, StudySession, Subproblem, Attempt } from '../../../domain/models'
 import { newId } from '../../../lib/id'
 import type {
   AttemptRepository,
-  ExercisePageRepository,
+  ExerciseRepository,
   ProblemRepository,
   StudySessionRepository,
   SubproblemRepository,
@@ -34,54 +34,43 @@ export class LocalStudySessionRepository implements StudySessionRepository {
   }
 }
 
-export class LocalExercisePageRepository implements ExercisePageRepository {
-  async getByAssetAndPage(
-    assetId: string,
-    pageNumber: number,
-  ): Promise<ExercisePage | undefined> {
-    return db.exercisePages
-      .where('[assetId+pageNumber]')
-      .equals([assetId, pageNumber])
-      .first()
+export class LocalExerciseRepository implements ExerciseRepository {
+  async getByAsset(assetId: string): Promise<Exercise | undefined> {
+    return db.exercises.where('assetId').equals(assetId).first()
   }
 
-  async upsert(input: {
-    assetId: string
-    pageNumber: number
-    status: ExercisePage['status']
-  }): Promise<ExercisePage> {
-    const existing = await this.getByAssetAndPage(input.assetId, input.pageNumber)
+  async upsert(input: { assetId: string; status: Exercise['status'] }): Promise<Exercise> {
+    const existing = await this.getByAsset(input.assetId)
     if (existing) {
-      const next: ExercisePage = { ...existing, status: input.status }
-      await db.exercisePages.put(next)
+      const next: Exercise = { ...existing, status: input.status }
+      await db.exercises.put(next)
       return next
     }
-    const row: ExercisePage = {
-      id: newId(),
-      assetId: input.assetId,
-      pageNumber: input.pageNumber,
-      status: input.status,
-    }
-    await db.exercisePages.add(row)
+    const row: Exercise = { id: newId(), assetId: input.assetId, status: input.status }
+    await db.exercises.add(row)
     return row
   }
 
-  async setStatus(id: string, status: ExercisePage['status']): Promise<void> {
-    await db.exercisePages.update(id, { status })
+  async setStatus(id: string, status: Exercise['status']): Promise<void> {
+    await db.exercises.update(id, { status })
   }
 }
 
 export class LocalProblemRepository implements ProblemRepository {
-  async getOrCreate(input: { pageId: string; idx: number }): Promise<Problem> {
+  async getOrCreate(input: { exerciseId: string; idx: number }): Promise<Problem> {
     const existing = await db.problems
-      .where('[pageId+idx]')
-      .equals([input.pageId, input.idx])
+      .where('[exerciseId+idx]')
+      .equals([input.exerciseId, input.idx])
       .first()
     if (existing) return existing
 
-    const row: Problem = { id: newId(), pageId: input.pageId, idx: input.idx }
+    const row: Problem = { id: newId(), exerciseId: input.exerciseId, idx: input.idx }
     await db.problems.add(row)
     return row
+  }
+
+  async listByExercise(exerciseId: string): Promise<Problem[]> {
+    return db.problems.where('exerciseId').equals(exerciseId).toArray()
   }
 }
 
@@ -100,6 +89,11 @@ export class LocalSubproblemRepository implements SubproblemRepository {
     }
     await db.subproblems.add(row)
     return row
+  }
+
+  async listByProblemIds(problemIds: string[]): Promise<Subproblem[]> {
+    if (problemIds.length === 0) return []
+    return db.subproblems.where('problemId').anyOf(problemIds).toArray()
   }
 }
 
@@ -133,6 +127,11 @@ export class LocalAttemptRepository implements AttemptRepository {
     return db.attempts.where('subproblemId').equals(subproblemId).toArray()
   }
 
+  async listBySubproblemIds(subproblemIds: string[]): Promise<Attempt[]> {
+    if (subproblemIds.length === 0) return []
+    return db.attempts.where('subproblemId').anyOf(subproblemIds).toArray()
+  }
+
   async listByStudySession(studySessionId: string): Promise<Attempt[]> {
     return db.attempts.where('studySessionId').equals(studySessionId).toArray()
   }
@@ -141,7 +140,6 @@ export class LocalAttemptRepository implements AttemptRepository {
     Array<{
       attempt: Attempt
       assetId: string
-      pageNumber: number
       problemIdx: number
       subproblemLabel: string
     }>
@@ -158,39 +156,34 @@ export class LocalAttemptRepository implements AttemptRepository {
     const problems = await db.problems.where('id').anyOf(problemIds).toArray()
     const problemById = new Map(problems.map((p) => [p.id, p]))
 
-    const pageIds = Array.from(new Set(problems.map((p) => p.pageId)))
-    const pages = await db.exercisePages.where('id').anyOf(pageIds).toArray()
-    const pageById = new Map(pages.map((p) => [p.id, p]))
+    const exerciseIds = Array.from(new Set(problems.map((p) => p.exerciseId)))
+    const exercises = await db.exercises.where('id').anyOf(exerciseIds).toArray()
+    const exerciseById = new Map(exercises.map((e) => [e.id, e]))
 
     return attempts
       .map((a) => {
         const sp = subproblemById.get(a.subproblemId)
         const p = sp ? problemById.get(sp.problemId) : undefined
-        const page = p ? pageById.get(p.pageId) : undefined
+        const ex = p ? exerciseById.get(p.exerciseId) : undefined
         return {
           attempt: a,
-          assetId: page?.assetId ?? 'unknown',
-          pageNumber: page?.pageNumber ?? 0,
+          assetId: ex?.assetId ?? 'unknown',
           problemIdx: p?.idx ?? 0,
           subproblemLabel: sp?.label ?? '?',
         }
       })
-      .filter((r) => r.assetId !== 'unknown' && r.pageNumber > 0)
+      .filter((r) => r.assetId !== 'unknown')
       .sort((a, b) => a.attempt.endedAtMs - b.attempt.endedAtMs)
   }
 
-  async listForSessionAssetPage(input: {
+  async listForSessionAsset(input: {
     studySessionId: string
     assetId: string
-    pageNumber: number
   }): Promise<Array<{ attempt: Attempt; problemIdx: number; subproblemLabel: string }>> {
-    const page = await db.exercisePages
-      .where('[assetId+pageNumber]')
-      .equals([input.assetId, input.pageNumber])
-      .first()
-    if (!page) return []
+    const exercise = await db.exercises.where('assetId').equals(input.assetId).first()
+    if (!exercise) return []
 
-    const problems = await db.problems.where('pageId').equals(page.id).toArray()
+    const problems = await db.problems.where('exerciseId').equals(exercise.id).toArray()
     if (problems.length === 0) return []
 
     const problemIdxById = new Map(problems.map((p) => [p.id, p.idx]))

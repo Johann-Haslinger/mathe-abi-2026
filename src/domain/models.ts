@@ -54,16 +54,15 @@ export type StudySession = {
   endedAtMs?: number
 }
 
-export type ExercisePage = {
+export type Exercise = {
   id: Id
   assetId: Id
-  pageNumber: number
   status: ExercisePageStatus
 }
 
 export type Problem = {
   id: Id
-  pageId: Id
+  exerciseId: Id
   idx: number
 }
 

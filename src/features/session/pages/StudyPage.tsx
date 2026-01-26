@@ -10,7 +10,7 @@ import type { AssetFile } from '../../../domain/models'
 import { FloatingQuickLogPanel } from '../components/FloatingQuickLogPanel'
 import { useStudyStore } from '../stores/studyStore'
 import { AssetViewer } from '../viewer/AssetViewer'
-import { PageDoneReviewModal } from '../modals/PageDoneReviewModal'
+import { ExerciseReviewModal } from '../modals/ExerciseReviewModal'
 import type { SessionSummaryState } from '../modals/SessionSummaryModal'
 
 export function StudyPage() {
@@ -21,22 +21,22 @@ export function StudyPage() {
   const { asset, file, pdfData, loading, error } = useStudyAssetData(assetId)
   const [pageNumber, setPageNumber] = useState(1)
   const [finishExerciseOpen, setFinishExerciseOpen] = useState(false)
-  const [pageDoneOpen, setPageDoneOpen] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const {
     studySessionId,
     attemptStartedAtMs,
     problemIdx,
     subproblemLabel,
-    pageStatusByKey,
     ensureStudySession,
-    loadPageStatus,
     setProblemIdx,
     setSubproblemLabel,
     startAttempt,
     cancelAttempt,
     logAttempt,
-    setPageStatus,
+    exerciseStatusByAssetId,
+    loadExerciseStatus,
+    setExerciseStatus,
     reset,
   } = useStudyStore()
 
@@ -73,11 +73,13 @@ export function StudyPage() {
 
   useEffect(() => {
     if (guardState.kind !== 'ok') return
-    void loadPageStatus(guardState.asset.id, pageNumber)
-  }, [guardState.kind, guardState.asset, pageNumber, loadPageStatus])
+    void loadExerciseStatus(guardState.asset.id)
+  }, [guardState.kind, guardState.asset, loadExerciseStatus])
 
-  const pageStatusKey = `${guardState.kind === 'ok' ? guardState.asset.id : 'x'}:${pageNumber}`
-  const pageStatus = pageStatusByKey[pageStatusKey] ?? 'unknown'
+  const exerciseStatus =
+    guardState.kind === 'ok'
+      ? (exerciseStatusByAssetId[guardState.asset.id] ?? 'unknown')
+      : 'unknown'
 
   if (guardState.kind === 'notfound') return <NotFoundPage />
   if (guardState.kind === 'loading')
@@ -183,7 +185,7 @@ export function StudyPage() {
             <FloatingQuickLogPanel
               assetId={guardState.asset.id}
               pageNumber={pageNumber}
-              pageStatus={pageStatus}
+              exerciseStatus={exerciseStatus}
               problemIdx={problemIdx}
               subproblemLabel={subproblemLabel}
               attemptStartedAtMs={attemptStartedAtMs}
@@ -194,7 +196,6 @@ export function StudyPage() {
               onSaveAttempt={async ({ result, note, errorType }) => {
                 await logAttempt({
                   assetId: guardState.asset.id,
-                  pageNumber,
                   problemIdx,
                   subproblemLabel,
                   endedAtMs: Date.now(),
@@ -208,9 +209,10 @@ export function StudyPage() {
                 setProblemIdx(problemIdx + 1)
                 setSubproblemLabel('a')
               }}
-              onMarkPageDone={async () => {
-                await setPageStatus(guardState.asset.id, pageNumber, 'covered')
-                setPageDoneOpen(true)
+              onMarkProgress={() => setReviewOpen(true)}
+              onFinishExercise={async () => {
+                await setExerciseStatus(guardState.asset.id, 'covered')
+                setFinishExerciseOpen(true)
               }}
             />
           </>
@@ -222,24 +224,17 @@ export function StudyPage() {
       ) : null}
 
       {guardState.kind === 'ok' ? (
-        <PageDoneReviewModal
-          open={pageDoneOpen}
-          onClose={() => setPageDoneOpen(false)}
+        <ExerciseReviewModal
+          open={reviewOpen}
+          onClose={() => setReviewOpen(false)}
           studySessionId={studySessionId}
           assetId={guardState.asset.id}
-          pageNumber={pageNumber}
-          onContinueNextPage={() => {
-            setPageDoneOpen(false)
-            setPageNumber((p) => p + 1)
-            setProblemIdx(1)
-            setSubproblemLabel('a')
-          }}
           onGoToTopic={() => {
-            setPageDoneOpen(false)
+            setReviewOpen(false)
             if (active) navigate(`/subjects/${active.subjectId}/topics/${active.topicId}`)
           }}
           onEndSession={async () => {
-            setPageDoneOpen(false)
+            setReviewOpen(false)
             const endedAtMs = Date.now()
             const target = active
               ? `/subjects/${active.subjectId}/topics/${active.topicId}`

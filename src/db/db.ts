@@ -3,7 +3,7 @@ import type {
   Asset,
   AssetFile,
   Attempt,
-  ExercisePage,
+  Exercise,
   Folder,
   Problem,
   StudySession,
@@ -20,7 +20,7 @@ export class AbiDb extends Dexie {
   assetFiles!: Table<AssetFile, string>
 
   studySessions!: Table<StudySession, string>
-  exercisePages!: Table<ExercisePage, string>
+  exercises!: Table<Exercise, string>
   problems!: Table<Problem, string>
   subproblems!: Table<Subproblem, string>
   attempts!: Table<Attempt, string>
@@ -55,6 +55,21 @@ export class AbiDb extends Dexie {
       studySessions: 'id, subjectId, topicId, startedAtMs, endedAtMs',
       exercisePages: 'id, [assetId+pageNumber], assetId, pageNumber, status',
       problems: 'id, [pageId+idx], pageId, idx',
+      subproblems: 'id, [problemId+label], problemId, label',
+      attempts:
+        'id, studySessionId, subproblemId, startedAtMs, endedAtMs, result',
+    })
+
+      this.version(4).stores({
+      subjects: 'id, name',
+      topics: 'id, subjectId, orderIndex',
+      folders: 'id, topicId, parentFolderId, orderIndex',
+      assets: 'id, subjectId, topicId, folderId, type, createdAtMs',
+      assetFiles: 'assetId',
+
+      studySessions: 'id, subjectId, topicId, startedAtMs, endedAtMs',
+      exercises: 'id, assetId, status',
+      problems: 'id, [exerciseId+idx], exerciseId, idx',
       subproblems: 'id, [problemId+label], problemId, label',
       attempts:
         'id, studySessionId, subproblemId, startedAtMs, endedAtMs, result',

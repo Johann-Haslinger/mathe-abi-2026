@@ -1,7 +1,7 @@
 import type {
   Attempt,
   AttemptResult,
-  ExercisePage,
+  Exercise,
   ExercisePageStatus,
   Problem,
   StudySession,
@@ -14,22 +14,20 @@ export interface StudySessionRepository {
   get(id: string): Promise<StudySession | undefined>
 }
 
-export interface ExercisePageRepository {
-  getByAssetAndPage(assetId: string, pageNumber: number): Promise<ExercisePage | undefined>
-  upsert(input: {
-    assetId: string
-    pageNumber: number
-    status: ExercisePageStatus
-  }): Promise<ExercisePage>
+export interface ExerciseRepository {
+  getByAsset(assetId: string): Promise<Exercise | undefined>
+  upsert(input: { assetId: string; status: ExercisePageStatus }): Promise<Exercise>
   setStatus(id: string, status: ExercisePageStatus): Promise<void>
 }
 
 export interface ProblemRepository {
-  getOrCreate(input: { pageId: string; idx: number }): Promise<Problem>
+  getOrCreate(input: { exerciseId: string; idx: number }): Promise<Problem>
+  listByExercise(exerciseId: string): Promise<Problem[]>
 }
 
 export interface SubproblemRepository {
   getOrCreate(input: { problemId: string; label: string }): Promise<Subproblem>
+  listByProblemIds(problemIds: string[]): Promise<Subproblem[]>
 }
 
 export interface AttemptRepository {
@@ -44,20 +42,19 @@ export interface AttemptRepository {
     errorType?: string
   }): Promise<Attempt>
   listBySubproblem(subproblemId: string): Promise<Attempt[]>
+  listBySubproblemIds(subproblemIds: string[]): Promise<Attempt[]>
   listByStudySession(studySessionId: string): Promise<Attempt[]>
   listDetailsByStudySession(studySessionId: string): Promise<
     Array<{
       attempt: Attempt
       assetId: string
-      pageNumber: number
       problemIdx: number
       subproblemLabel: string
     }>
   >
-  listForSessionAssetPage(input: {
+  listForSessionAsset(input: {
     studySessionId: string
     assetId: string
-    pageNumber: number
   }): Promise<Array<{ attempt: Attempt; problemIdx: number; subproblemLabel: string }>>
 }
 

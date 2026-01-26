@@ -5,13 +5,11 @@ import { attemptRepo, studySessionRepo } from '../../../repositories'
 
 type Row = { attempt: Attempt; problemIdx: number; subproblemLabel: string }
 
-export function PageDoneReviewModal(props: {
+export function ExerciseReviewModal(props: {
   open: boolean
   onClose: () => void
   studySessionId: string | null
   assetId: string
-  pageNumber: number
-  onContinueNextPage: () => void
   onGoToTopic: () => void
   onEndSession: () => Promise<void> | void
 }) {
@@ -31,10 +29,9 @@ export function PageDoneReviewModal(props: {
       setError(null)
       try {
         await studySessionRepo.get(props.studySessionId)
-        const r = await attemptRepo.listForSessionAssetPage({
+        const r = await attemptRepo.listForSessionAsset({
           studySessionId: props.studySessionId,
           assetId: props.assetId,
-          pageNumber: props.pageNumber,
         })
         if (!cancelled) setRows(r)
       } catch (e) {
@@ -47,7 +44,7 @@ export function PageDoneReviewModal(props: {
     return () => {
       cancelled = true
     }
-  }, [props.open, props.studySessionId, props.assetId, props.pageNumber])
+  }, [props.open, props.studySessionId, props.assetId])
 
   const stats = useMemo(() => {
     const totalSeconds = rows.reduce((acc, r) => acc + r.attempt.seconds, 0)
@@ -60,7 +57,7 @@ export function PageDoneReviewModal(props: {
   return (
     <Modal
       open={props.open}
-      title={`Seite ${props.pageNumber} – Review`}
+      title="Übung – Review (Session)"
       onClose={props.onClose}
       footer={
         <>
@@ -80,10 +77,10 @@ export function PageDoneReviewModal(props: {
           </button>
           <button
             type="button"
-            onClick={props.onContinueNextPage}
+            onClick={props.onClose}
             className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400"
           >
-            Nächste Aufgabe
+            Weiter
           </button>
         </>
       }
@@ -150,7 +147,7 @@ export function PageDoneReviewModal(props: {
             </div>
           ) : (
             <div className="text-sm text-slate-400">
-              Keine Versuche auf dieser Seite in der aktuellen Session.
+              Keine Versuche in dieser Übung (in der aktuellen Session).
             </div>
           )
         ) : null}
