@@ -11,6 +11,7 @@ import { FloatingQuickLogPanel } from '../components/FloatingQuickLogPanel'
 import { useStudyStore } from '../stores/studyStore'
 import { AssetViewer } from '../viewer/AssetViewer'
 import { PageDoneReviewModal } from '../modals/PageDoneReviewModal'
+import type { SessionSummaryState } from '../modals/SessionSummaryModal'
 
 export function StudyPage() {
   const { assetId } = useParams()
@@ -201,7 +202,6 @@ export function StudyPage() {
                   note,
                   errorType,
                 })
-                setSubproblemLabel(nextLabel(subproblemLabel))
               }}
               onNextSubproblem={() => setSubproblemLabel(nextLabel(subproblemLabel))}
               onNewProblem={() => {
@@ -212,7 +212,6 @@ export function StudyPage() {
                 await setPageStatus(guardState.asset.id, pageNumber, 'covered')
                 setPageDoneOpen(true)
               }}
-              onFinishExercise={() => setFinishExerciseOpen(true)}
             />
           </>
         ) : (
@@ -241,10 +240,25 @@ export function StudyPage() {
           }}
           onEndSession={async () => {
             setPageDoneOpen(false)
-            if (studySessionId) await studySessionRepo.end(studySessionId, Date.now())
+            const endedAtMs = Date.now()
+            const target = active
+              ? `/subjects/${active.subjectId}/topics/${active.topicId}`
+              : '/dashboard'
+            const summary: SessionSummaryState | null = active
+              ? {
+                  studySessionId: studySessionId ?? undefined,
+                  subjectId: active.subjectId,
+                  topicId: active.topicId,
+                  startedAtMs: active.startedAtMs,
+                  endedAtMs,
+                }
+              : null
+
+            if (studySessionId) await studySessionRepo.end(studySessionId, endedAtMs)
             end()
             reset()
-            navigate(`/dashboard`)
+            if (summary) navigate(target, { state: { sessionSummary: summary } })
+            else navigate(target)
           }}
         />
       ) : null}

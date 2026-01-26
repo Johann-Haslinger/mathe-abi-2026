@@ -133,6 +133,52 @@ export class LocalAttemptRepository implements AttemptRepository {
     return db.attempts.where('subproblemId').equals(subproblemId).toArray()
   }
 
+  async listByStudySession(studySessionId: string): Promise<Attempt[]> {
+    return db.attempts.where('studySessionId').equals(studySessionId).toArray()
+  }
+
+  async listDetailsByStudySession(studySessionId: string): Promise<
+    Array<{
+      attempt: Attempt
+      assetId: string
+      pageNumber: number
+      problemIdx: number
+      subproblemLabel: string
+    }>
+  > {
+    const attempts = await db.attempts.where('studySessionId').equals(studySessionId).toArray()
+    if (attempts.length === 0) return []
+
+    const subproblemIds = Array.from(new Set(attempts.map((a) => a.subproblemId)))
+    const subproblems = await db.subproblems.where('id').anyOf(subproblemIds).toArray()
+    if (subproblems.length === 0) return []
+
+    const subproblemById = new Map(subproblems.map((sp) => [sp.id, sp]))
+    const problemIds = Array.from(new Set(subproblems.map((sp) => sp.problemId)))
+    const problems = await db.problems.where('id').anyOf(problemIds).toArray()
+    const problemById = new Map(problems.map((p) => [p.id, p]))
+
+    const pageIds = Array.from(new Set(problems.map((p) => p.pageId)))
+    const pages = await db.exercisePages.where('id').anyOf(pageIds).toArray()
+    const pageById = new Map(pages.map((p) => [p.id, p]))
+
+    return attempts
+      .map((a) => {
+        const sp = subproblemById.get(a.subproblemId)
+        const p = sp ? problemById.get(sp.problemId) : undefined
+        const page = p ? pageById.get(p.pageId) : undefined
+        return {
+          attempt: a,
+          assetId: page?.assetId ?? 'unknown',
+          pageNumber: page?.pageNumber ?? 0,
+          problemIdx: p?.idx ?? 0,
+          subproblemLabel: sp?.label ?? '?',
+        }
+      })
+      .filter((r) => r.assetId !== 'unknown' && r.pageNumber > 0)
+      .sort((a, b) => a.attempt.endedAtMs - b.attempt.endedAtMs)
+  }
+
   async listForSessionAssetPage(input: {
     studySessionId: string
     assetId: string

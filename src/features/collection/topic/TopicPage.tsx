@@ -3,7 +3,7 @@ import {
   FolderPlus,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { Asset, AssetType, Folder } from '../../../domain/models'
 import { downloadBlob, openBlobInNewTab } from '../../../lib/blob'
 import { useAssetsStore } from '../../../stores/assetsStore'
@@ -12,6 +12,10 @@ import { useFoldersStore } from '../../../stores/foldersStore'
 import { useSubjectsStore } from '../../../stores/subjectsStore'
 import { useTopicsStore } from '../../../stores/topicsStore'
 import { NotFoundPage } from '../../common/NotFoundPage'
+import {
+  SessionSummaryModal,
+  type SessionSummaryState,
+} from '../../session/modals/SessionSummaryModal'
 import { FilterChip } from './components/FilterChip'
 import { FolderTree } from './components/FolderTree'
 import { AssetItem } from './components/AssetItem'
@@ -21,6 +25,7 @@ import { UpsertFolderModal } from './modals/UpsertFolderModal'
 export function TopicPage() {
   const { subjectId, topicId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { active } = useActiveSessionStore()
 
   const { subjects, refresh: refreshSubjects } = useSubjectsStore()
@@ -100,6 +105,14 @@ export function TopicPage() {
 
   const [assetFilter, setAssetFilter] = useState<'all' | AssetType>('all')
 
+  const [sessionSummary, setSessionSummary] = useState<SessionSummaryState | null>(null)
+  useEffect(() => {
+    const s = (location.state as { sessionSummary?: SessionSummaryState } | null)?.sessionSummary
+    if (!s) return
+    setSessionSummary(s)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, navigate])
+
   const filteredAssets = useMemo(() => {
     if (assetFilter === 'all') return assets
     return assets.filter((a) => a.type === assetFilter)
@@ -139,6 +152,19 @@ export function TopicPage() {
 
   return (
     <div className="space-y-6">
+      <SessionSummaryModal
+        key={
+          sessionSummary
+            ? `${sessionSummary.startedAtMs}-${sessionSummary.endedAtMs}`
+            : 'none'
+        }
+        open={!!sessionSummary}
+        onClose={() => setSessionSummary(null)}
+        summary={sessionSummary}
+        subjectName={subject?.name}
+        topicName={topic?.name}
+      />
+
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-semibold text-slate-400">

@@ -44,6 +44,16 @@ export interface AttemptRepository {
     errorType?: string
   }): Promise<Attempt>
   listBySubproblem(subproblemId: string): Promise<Attempt[]>
+  listByStudySession(studySessionId: string): Promise<Attempt[]>
+  listDetailsByStudySession(studySessionId: string): Promise<
+    Array<{
+      attempt: Attempt
+      assetId: string
+      pageNumber: number
+      problemIdx: number
+      subproblemLabel: string
+    }>
+  >
   listForSessionAssetPage(input: {
     studySessionId: string
     assetId: string

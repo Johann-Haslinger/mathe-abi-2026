@@ -1,8 +1,12 @@
 import { Clock, StopCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { studySessionRepo } from '../../repositories'
 import { useActiveSessionStore } from '../../stores/activeSessionStore'
 import { useSubjectsStore } from '../../stores/subjectsStore'
 import { useTopicsStore } from '../../stores/topicsStore'
+import { useStudyStore } from './stores/studyStore'
+import type { SessionSummaryState } from './modals/SessionSummaryModal'
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60)
@@ -11,9 +15,11 @@ function formatDuration(seconds: number) {
 }
 
 export function ActiveSessionBanner() {
+  const navigate = useNavigate()
   const { active, end } = useActiveSessionStore()
   const { subjects } = useSubjectsStore()
   const { topicsBySubject } = useTopicsStore()
+  const { studySessionId, reset } = useStudyStore()
 
   const [nowMs, setNowMs] = useState(() => Date.now())
   useEffect(() => {
@@ -60,7 +66,23 @@ export function ActiveSessionBanner() {
 
         <button
           type="button"
-          onClick={end}
+          onClick={async () => {
+            if (!active) return
+            const endedAtMs = Date.now()
+            const summary: SessionSummaryState = {
+              studySessionId: studySessionId ?? undefined,
+              subjectId: active.subjectId,
+              topicId: active.topicId,
+              startedAtMs: active.startedAtMs,
+              endedAtMs,
+            }
+            if (studySessionId) await studySessionRepo.end(studySessionId, endedAtMs)
+            end()
+            reset()
+            navigate(`/subjects/${active.subjectId}/topics/${active.topicId}`, {
+              state: { sessionSummary: summary },
+            })
+          }}
           className="inline-flex items-center justify-center gap-2 rounded-md bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-500"
         >
           <StopCircle className="h-4 w-4" />

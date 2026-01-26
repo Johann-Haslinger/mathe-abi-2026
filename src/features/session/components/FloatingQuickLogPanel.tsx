@@ -25,7 +25,6 @@ export function FloatingQuickLogPanel(props: {
   onNextSubproblem: () => void
   onNewProblem: () => void
   onMarkPageDone: () => void
-  onFinishExercise: () => void
 }) {
   const [nowMs, setNowMs] = useState(() => Date.now())
 
@@ -91,10 +90,6 @@ export function FloatingQuickLogPanel(props: {
             }}
             onMarkPageDone={() => {
               props.onMarkPageDone()
-              setView('default')
-            }}
-            onFinishExercise={() => {
-              props.onFinishExercise()
               setView('default')
             }}
           />
