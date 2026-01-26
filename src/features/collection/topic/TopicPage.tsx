@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import type { Asset, AssetType, Folder } from '../../../domain/models'
 import { downloadBlob, openBlobInNewTab } from '../../../lib/blob'
 import { useAssetsStore } from '../../../stores/assetsStore'
+import { useActiveSessionStore } from '../../../stores/activeSessionStore'
 import { useFoldersStore } from '../../../stores/foldersStore'
 import { useSubjectsStore } from '../../../stores/subjectsStore'
 import { useTopicsStore } from '../../../stores/topicsStore'
@@ -20,6 +21,7 @@ import { UpsertFolderModal } from './modals/UpsertFolderModal'
 export function TopicPage() {
   const { subjectId, topicId } = useParams()
   const navigate = useNavigate()
+  const { active } = useActiveSessionStore()
 
   const { subjects, refresh: refreshSubjects } = useSubjectsStore()
   const { topicsBySubject, refreshBySubject } = useTopicsStore()
@@ -114,6 +116,11 @@ export function TopicPage() {
   }
 
   async function openAsset(asset: Asset) {
+    if (asset.type === 'exercise') {
+      if (active) navigate(`/study/${asset.id}`)
+      else navigate(`/exercise/${asset.id}`)
+      return
+    }
     const file = await getFile(asset.id)
     if (!file) return
     openBlobInNewTab(file.blob)
@@ -395,6 +402,3 @@ export function TopicPage() {
     </div>
   )
 }
-
-// (helpers extracted into ./components + ./utils)
-

@@ -1,12 +1,29 @@
 import Dexie, { type Table } from 'dexie'
-import type { Asset, AssetFile, Folder, Subject, Topic } from '../domain/models'
+import type {
+  Asset,
+  AssetFile,
+  Attempt,
+  ExercisePage,
+  Folder,
+  Problem,
+  StudySession,
+  Subject,
+  Subproblem,
+  Topic,
+} from '../domain/models'
 
 export class AbiDb extends Dexie {
   subjects!: Table<Subject, string>
   topics!: Table<Topic, string>
   folders!: Table<Folder, string>
   assets!: Table<Asset, string>
-  assetFiles!: Table<AssetFile, string> // pk: assetId
+  assetFiles!: Table<AssetFile, string>
+
+  studySessions!: Table<StudySession, string>
+  exercisePages!: Table<ExercisePage, string>
+  problems!: Table<Problem, string>
+  subproblems!: Table<Subproblem, string>
+  attempts!: Table<Attempt, string>
 
   constructor() {
     super('abi-lernapp')
@@ -26,6 +43,21 @@ export class AbiDb extends Dexie {
       folders: 'id, topicId, parentFolderId, orderIndex',
       assets: 'id, subjectId, topicId, folderId, type, createdAtMs',
       assetFiles: 'assetId',
+    })
+
+    this.version(3).stores({
+      subjects: 'id, name',
+      topics: 'id, subjectId, orderIndex',
+      folders: 'id, topicId, parentFolderId, orderIndex',
+      assets: 'id, subjectId, topicId, folderId, type, createdAtMs',
+      assetFiles: 'assetId',
+
+      studySessions: 'id, subjectId, topicId, startedAtMs, endedAtMs',
+      exercisePages: 'id, [assetId+pageNumber], assetId, pageNumber, status',
+      problems: 'id, [pageId+idx], pageId, idx',
+      subproblems: 'id, [problemId+label], problemId, label',
+      attempts:
+        'id, studySessionId, subproblemId, startedAtMs, endedAtMs, result',
     })
   }
 }

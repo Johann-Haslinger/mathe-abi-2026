@@ -44,3 +44,46 @@ export type AssetFile = {
   blob: Blob
 }
 
+export type ExercisePageStatus = 'unknown' | 'partial' | 'captured' | 'covered'
+
+export type StudySession = {
+  id: Id
+  subjectId: Id
+  topicId: Id
+  startedAtMs: number
+  endedAtMs?: number
+}
+
+export type ExercisePage = {
+  id: Id
+  assetId: Id
+  pageNumber: number
+  status: ExercisePageStatus
+}
+
+export type Problem = {
+  id: Id
+  pageId: Id
+  idx: number
+}
+
+export type Subproblem = {
+  id: Id
+  problemId: Id
+  label: string
+}
+
+export type AttemptResult = 'correct' | 'partial' | 'wrong'
+
+export type Attempt = {
+  id: Id
+  studySessionId: Id
+  subproblemId: Id
+  startedAtMs: number
+  endedAtMs: number
+  seconds: number
+  result: AttemptResult
+  note?: string
+  errorType?: string
+}
+

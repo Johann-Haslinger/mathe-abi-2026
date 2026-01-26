@@ -3,6 +3,7 @@ import { AppShell } from './app/AppShell'
 import { DashboardPage } from './features/dashboard'
 import { NotFoundPage } from './features/common'
 import { SubjectPage, TopicPage } from './features/collection'
+import { ExercisePage, StudyPage } from './features/session'
 
 export default function App() {
   return (
@@ -15,6 +16,8 @@ export default function App() {
           path="/subjects/:subjectId/topics/:topicId"
           element={<TopicPage />}
         />
+        <Route path="/exercise/:assetId" element={<ExercisePage />} />
+        <Route path="/study/:assetId" element={<StudyPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
