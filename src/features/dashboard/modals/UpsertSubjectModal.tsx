@@ -1,15 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Modal } from '../../../components/Modal'
-import { subjectColorOptions } from '../../../ui/subjectColors'
+import type { Subject } from '../../../domain/models'
+import { useThemeStore } from '../../../stores/themeStore'
+import { DEFAULT_SUBJECT_COLOR, subjectColorOptions } from '../../../ui/subjectColors'
+import { resolveSubjectGradient } from '../../../ui/subjectColorResolvers'
 
 export function UpsertSubjectModal(props: {
   open: boolean
   mode: 'create' | 'edit'
-  initial?: { name: string; color: string; iconEmoji?: string }
+  initial?: { name: string; color: Subject['color']; iconEmoji?: string }
   onClose: () => void
-  onSave: (input: { name: string; color: string; iconEmoji?: string }) => Promise<void> | void
+  onSave: (input: {
+    name: string
+    color: Subject['color']
+    iconEmoji?: string
+  }) => Promise<void> | void
 }) {
-  const defaultColor = subjectColorOptions[0]?.hex ?? '#6366F1'
+  const defaultColor = DEFAULT_SUBJECT_COLOR
 
   const title = useMemo(
     () => (props.mode === 'edit' ? 'Fach bearbeiten' : 'Fach anlegen'),
@@ -17,7 +24,7 @@ export function UpsertSubjectModal(props: {
   )
 
   const [name, setName] = useState('')
-  const [color, setColor] = useState(defaultColor)
+  const [color, setColor] = useState<Subject['color']>(defaultColor)
   const [iconEmoji, setIconEmoji] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -27,6 +34,9 @@ export function UpsertSubjectModal(props: {
     setColor(props.initial?.color ?? defaultColor)
     setIconEmoji(props.initial?.iconEmoji ?? '')
   }, [props.open, props.initial, defaultColor])
+
+  const effectiveTheme = useThemeStore((s) => s.effectiveTheme)
+  const { topHex, bottomHex } = resolveSubjectGradient(color, effectiveTheme)
 
   async function submit() {
     const trimmed = name.trim()
@@ -96,21 +106,45 @@ export function UpsertSubjectModal(props: {
 
         <label className="block">
           <div className="text-xs font-semibold text-slate-300">Farbe</div>
-          <select
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none ring-indigo-500/30 focus:ring-2"
-          >
-            {subjectColorOptions.map((opt) => (
-              <option key={opt.id} value={opt.hex}>
-                {opt.name}
-              </option>
-            ))}
-          </select>
+          <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <select
+              value={color.colorId}
+              onChange={(e) =>
+                setColor((c) => ({
+                  ...c,
+                  colorId: e.target.value as Subject['color']['colorId'],
+                }))
+              }
+              className="w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none ring-indigo-500/30 focus:ring-2"
+            >
+              {subjectColorOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={color.toneOrder}
+              onChange={(e) =>
+                setColor((c) => ({
+                  ...c,
+                  toneOrder: e.target.value as Subject['color']['toneOrder'],
+                }))
+              }
+              className="w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none ring-indigo-500/30 focus:ring-2"
+            >
+              <option value="lightTop">Hell oben</option>
+              <option value="darkTop">Dunkel oben</option>
+            </select>
+          </div>
+
           <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
             <span
               className="inline-block h-3 w-3 rounded-full"
-              style={{ backgroundColor: color }}
+              style={{
+                backgroundImage: `linear-gradient(to bottom, ${topHex}, ${bottomHex})`,
+              }}
               aria-hidden
             />
             Vorschau

@@ -10,10 +10,10 @@ export function NoActiveSessionWidget() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+        className="inline-flex items-center gap-2 rounded-full bg-black/85 hover:bg-black text-white dark:text-black pl-3 pr-4 py-1.5 text-xs cursor-pointer transition-all"
       >
         <Play className="h-4 w-4" />
-        Session starten
+        Lernen
       </button>
 
       <StartSessionModal open={open} onClose={() => setOpen(false)} />

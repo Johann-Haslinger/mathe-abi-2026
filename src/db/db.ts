@@ -11,6 +11,7 @@ import type {
   Subproblem,
   Topic,
 } from '../domain/models'
+import { SubjectColorId } from '../domain/models'
 
 export class AbiDb extends Dexie {
   subjects!: Table<Subject, string>
@@ -101,6 +102,28 @@ export class AbiDb extends Dexie {
         await tx.table('problems').clear()
         await tx.table('exercises').clear()
         await tx.table('studySessions').clear()
+      })
+
+    // v6: Reset legacy subject colors (hex strings) to the new token assignment model.
+    this.version(6)
+      .stores({
+        subjects: 'id, name',
+        topics: 'id, subjectId, orderIndex',
+        folders: 'id, topicId, parentFolderId, orderIndex',
+        assets: 'id, subjectId, topicId, folderId, type, createdAtMs',
+        assetFiles: 'assetId',
+
+        studySessions: 'id, subjectId, topicId, startedAtMs, endedAtMs',
+        exercises: 'id, assetId, status',
+        problems: 'id, [exerciseId+idx], exerciseId, idx',
+        subproblems: 'id, [problemId+label], problemId, label',
+        attempts:
+          'id, studySessionId, subproblemId, startedAtMs, endedAtMs, result',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('subjects').toCollection().modify({
+          color: { colorId: SubjectColorId.DarkBlue, toneOrder: 'lightTop' },
+        })
       })
   }
 }

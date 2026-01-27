@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 import { NavLink } from 'react-router-dom'
 import { SessionWidget } from '../features/session'
+import { ThemeToggle } from './ThemeToggle'
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     clsx(
@@ -32,7 +33,8 @@ export function NavBar() {
             </NavLink>
            
           </nav>
-          <div className="justify-self-end">
+          <div className="justify-self-end flex items-center gap-2">
+            <ThemeToggle />
             <SessionWidget />
           </div>
         </div>

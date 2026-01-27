@@ -1,14 +1,22 @@
-import type { Asset, AssetFile, AssetType, Folder, Subject, Topic } from '../domain/models'
+import type {
+  Asset,
+  AssetFile,
+  AssetType,
+  Folder,
+  Subject,
+  SubjectColorAssignment,
+  Topic,
+} from '../domain/models'
 
 export type SubjectCreateInput = {
   name: string
-  color: string
+  color: SubjectColorAssignment
   iconEmoji?: string
 }
 
 export type SubjectUpdateInput = {
   name?: string
-  color?: string
+  color?: SubjectColorAssignment
   iconEmoji?: string | undefined
 }
 

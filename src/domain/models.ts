@@ -2,10 +2,27 @@ export type Id = string
 
 export type AssetType = 'exercise' | 'note' | 'cheatsheet' | 'file'
 
+export const SubjectColorId = {
+  Green: 'green',
+  LightBlue: 'lightBlue',
+  Orange: 'orange',
+  Red: 'red',
+  DarkBlue: 'darkBlue',
+} as const
+
+export type SubjectColorId = (typeof SubjectColorId)[keyof typeof SubjectColorId]
+
+export type SubjectToneOrder = 'lightTop' | 'darkTop'
+
+export type SubjectColorAssignment = {
+  colorId: SubjectColorId
+  toneOrder: SubjectToneOrder
+}
+
 export type Subject = {
   id: Id
   name: string
-  color: string
+  color: SubjectColorAssignment
   iconEmoji?: string
 }
 

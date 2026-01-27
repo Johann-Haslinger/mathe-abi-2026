@@ -1,15 +1,45 @@
+import { SubjectColorId, type SubjectColorAssignment } from '../domain/models'
+
+export type ThemeMode = 'light' | 'dark'
+
+export type SubjectColorTones = {
+  lightHex: string
+  darkHex: string
+}
+
 export type SubjectColorOption = {
-  id: string
+  id: SubjectColorId
   name: string
-  hex: string
 }
 
 export const subjectColorOptions: SubjectColorOption[] = [
-  { id: 'indigo', name: 'Indigo', hex: '#6366F1' },
-  { id: 'sky', name: 'Sky', hex: '#0EA5E9' },
-  { id: 'emerald', name: 'Emerald', hex: '#10B981' },
-  { id: 'amber', name: 'Amber', hex: '#F59E0B' },
-  { id: 'rose', name: 'Rose', hex: '#F43F5E' },
-  { id: 'violet', name: 'Violet', hex: '#8B5CF6' },
+  { id: SubjectColorId.Green, name: 'Grün' },
+  { id: SubjectColorId.LightBlue, name: 'Hellblau' },
+  { id: SubjectColorId.Orange, name: 'Orange' },
+  { id: SubjectColorId.Red, name: 'Rot' },
+  { id: SubjectColorId.DarkBlue, name: 'Dunkelblau' },
 ]
+
+export const SUBJECT_COLOR_PALETTES: Record<ThemeMode, Record<SubjectColorId, SubjectColorTones>> =
+  {
+    light: {
+      [SubjectColorId.Green]: { lightHex: '#86EFAC', darkHex: '#16A34A' },
+      [SubjectColorId.LightBlue]: { lightHex: '#93C5FD', darkHex: '#2563EB' },
+      [SubjectColorId.Orange]: { lightHex: '#FDBA74', darkHex: '#EA580C' },
+      [SubjectColorId.Red]: { lightHex: '#FDA4AF', darkHex: '#E11D48' },
+      [SubjectColorId.DarkBlue]: { lightHex: '#A5B4FC', darkHex: '#1D4ED8' },
+    },
+    dark: {
+      [SubjectColorId.Green]: { lightHex: '#22C55E', darkHex: '#14532D' },
+      [SubjectColorId.LightBlue]: { lightHex: '#3B82F6', darkHex: '#1E3A8A' },
+      [SubjectColorId.Orange]: { lightHex: '#F97316', darkHex: '#7C2D12' },
+      [SubjectColorId.Red]: { lightHex: '#FB7185', darkHex: '#881337' },
+      [SubjectColorId.DarkBlue]: { lightHex: '#60A5FA', darkHex: '#172554' },
+    },
+  }
+
+export const DEFAULT_SUBJECT_COLOR: SubjectColorAssignment = {
+  colorId: SubjectColorId.DarkBlue,
+  toneOrder: 'lightTop',
+}
 

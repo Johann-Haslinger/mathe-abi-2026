@@ -1,8 +1,11 @@
 import { Outlet } from 'react-router-dom'
+import { useThemeDomSync } from '../ui/hooks/useThemeDomSync'
 import { NavBar } from './NavBar'
 
 
 export function AppShell() {
+  useThemeDomSync()
+
   return (
     <div className="min-h-screen">
       <NavBar />

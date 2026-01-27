@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { Subject } from '../domain/models'
 import { subjectRepo } from '../repositories'
-import { subjectColorOptions } from '../ui/subjectColors'
+import { DEFAULT_SUBJECT_COLOR } from '../ui/subjectColors'
 
 type SubjectsState = {
   subjects: Subject[]
@@ -10,17 +10,17 @@ type SubjectsState = {
   refresh: () => Promise<void>
   createSubject: (input: {
     name: string
-    color?: string
+    color?: Subject['color']
     iconEmoji?: string
   }) => Promise<Subject>
   updateSubject: (
     id: string,
-    patch: { name?: string; color?: string; iconEmoji?: string | undefined },
+    patch: { name?: string; color?: Subject['color']; iconEmoji?: string | undefined },
   ) => Promise<Subject>
   deleteSubject: (id: string) => Promise<void>
 }
 
-const defaultColor = subjectColorOptions[0]?.hex ?? '#6366F1'
+const defaultColor = DEFAULT_SUBJECT_COLOR
 
 export const useSubjectsStore = create<SubjectsState>((set, get) => ({
   subjects: [],
