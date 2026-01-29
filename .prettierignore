@@ -1,0 +1,10 @@
+# Add files here to ignore them from prettier formatting
+/dist
+/coverage
+/.nx/cache
+/.nx/workspace-data
+packages/cpt-supabase/src/lib/cpt-supabase.types.ts
+
+**/*.md
+**/*.yml
+**/*.yaml

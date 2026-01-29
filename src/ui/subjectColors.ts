@@ -25,9 +25,9 @@ export const SUBJECT_COLOR_PALETTES: Record<ThemeMode, Record<SubjectColorId, Su
     light: {
       [SubjectColorId.Green]: { lightHex: '#86EFAC', darkHex: '#16A34A' },
       [SubjectColorId.LightBlue]: { lightHex: '#93C5FD', darkHex: '#2563EB' },
-      [SubjectColorId.Orange]: { lightHex: '#FDBA74', darkHex: '#EA580C' },
-      [SubjectColorId.Red]: { lightHex: '#FDA4AF', darkHex: '#E11D48' },
-      [SubjectColorId.DarkBlue]: { lightHex: '#A5B4FC', darkHex: '#1D4ED8' },
+      [SubjectColorId.Orange]: { lightHex: '#E6D7B0', darkHex: '#E98226' },
+      [SubjectColorId.Red]: { lightHex: '#E8C6D6', darkHex: '#E12F25' },
+      [SubjectColorId.DarkBlue]: { lightHex: '#E8E9DB', darkHex: '#1C65CB' },
     },
     dark: {
       [SubjectColorId.Green]: { lightHex: '#22C55E', darkHex: '#14532D' },
