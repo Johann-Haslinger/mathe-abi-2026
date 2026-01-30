@@ -70,17 +70,17 @@ export function ActiveSessionWidget(props: { active: ActiveSession }) {
       className="fixed z-9000 w-[200px] max-w-[calc(100vw-32px)]"
       style={{ left: pos.x, top: pos.y }}
     >
-      <div className="rounded-full overflow-hidden bg-white">
+      <div className="rounded-full overflow-hidden bg-white dark:bg-green-400/0">
         <div
           style={{ backgroundColor: isAssetOrStudyPage ? subjectColor : subjectColor + '4D' }}
-          className="w-full h-full"
+          className="w-full h-full dark:bg-white/10!"
         >
           <div className="flex items-stretch p-1.5">
             <button
               style={{ backgroundColor: subjectColor }}
               type="button"
               onClick={() => void stopSession()}
-              className="inline-flex size-8 items-center justify-center rounded-full text-white/70 hover:bg-rose-500"
+              className="inline-flex size-8 items-center justify-center rounded-full text-white/70 dark:bg-white/90! dark:text-black/60"
               aria-label="Stop"
               title="Session beenden"
             >
