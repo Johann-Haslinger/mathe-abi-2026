@@ -1,104 +1,170 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { AttemptResult, ExercisePageStatus } from '../../../domain/models';
-import { DefaultView } from './floatingQuickLogPanel/DefaultView';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
+import { useMemo, useState } from 'react';
+import { useActiveSessionStore } from '../../../stores/activeSessionStore';
+import { useStudyStore } from '../stores/studyStore';
 import { NextView } from './floatingQuickLogPanel/NextView';
+import { ProgressView } from './floatingQuickLogPanel/ProgressView.tsx';
 import { ReviewView } from './floatingQuickLogPanel/ReviewView';
+import { StartView } from './floatingQuickLogPanel/StartView.tsx';
 
-type PanelView = 'default' | 'review' | 'next';
+type PanelView = 'start' | 'progress' | 'review' | 'next';
 
 export function FloatingQuickLogPanel(props: {
   assetId: string;
   pageNumber: number;
-  exerciseStatus: ExercisePageStatus;
-  problemIdx: number;
-  subproblemLabel: string;
-  attemptStartedAtMs: number | null;
-  onProblemIdxChange: (idx: number) => void;
-  onSubproblemLabelChange: (label: string) => void;
-  onStartAttempt: () => void;
-  onCancelAttempt: () => void;
-  onSaveAttempt: (input: {
-    result: AttemptResult;
-    note?: string;
-    errorType?: string;
-  }) => Promise<void> | void;
-  onNextSubproblem: () => void;
-  onNewProblem: () => void;
-  onMarkProgress: () => void;
-  onFinishExercise: () => void;
+  subjectId: string;
+  topicId: string;
+  onOpenExerciseReview: () => void;
 }) {
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [view, setView] = useState<PanelView>('start');
 
-  useEffect(() => {
-    if (!props.attemptStartedAtMs) return;
-    const t = window.setInterval(() => setNowMs(Date.now()), 250);
-    return () => window.clearInterval(t);
-  }, [props.attemptStartedAtMs]);
+  const active = useActiveSessionStore((s) => s.active);
+  const {
+    problemIdx,
+    subproblemLabel,
+    ensureStudySession,
+    setProblemIdx,
+    setSubproblemLabel,
+    cancelAttempt,
+    logAttempt,
+    setExerciseStatus,
+  } = useStudyStore();
 
-  const seconds = useMemo(() => {
-    if (!props.attemptStartedAtMs) return 0;
-    return Math.max(0, Math.floor((nowMs - props.attemptStartedAtMs) / 1000));
-  }, [nowMs, props.attemptStartedAtMs]);
+  const dragControls = useDragControls();
 
-  const [view, setView] = useState<PanelView>('default');
+  const viewHeightPx: Record<PanelView, number> = useMemo(
+    () => ({
+      start: 280,
+      progress: 180,
+      review: 340,
+      next: 180,
+    }),
+    [],
+  );
+
+  const gripProps = useMemo(
+    () => ({
+      onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        dragControls.start(e);
+      },
+    }),
+    [dragControls],
+  );
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 w-[min(420px,calc(100vw-2rem))]">
-      <div className="rounded-xl border border-slate-800 bg-slate-950/90 dark:bg-white/10 p-3 shadow-xl backdrop-blur">
-        {view === 'default' ? (
-          <DefaultView
-            pageNumber={props.pageNumber}
-            exerciseStatus={props.exerciseStatus}
-            problemIdx={props.problemIdx}
-            subproblemLabel={props.subproblemLabel}
-            seconds={seconds}
-            attemptStartedAtMs={props.attemptStartedAtMs}
-            onProblemIdxChange={props.onProblemIdxChange}
-            onSubproblemLabelChange={props.onSubproblemLabelChange}
-            onStartAttempt={() => {
-              props.onStartAttempt();
-              setView('default');
-            }}
-            onStopAttempt={() => {
-              props.onCancelAttempt();
-              setView('default');
-            }}
-            onOpenReview={() => setView('review')}
-          />
-        ) : null}
+    <div className="fixed inset-0 z-9999 pointer-events-none">
+      <motion.div
+        className="absolute bottom-4 right-4 pointer-events-auto w-[min(380px,calc(100vw-16px))] touch-none"
+        drag
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 8, left: 8, right: 8, bottom: 8 }}
+        dragElastic={0}
+        dragMomentum={false}
+      >
+        <motion.div
+          layout
+          animate={{ height: viewHeightPx[view] }}
+          transition={{ type: 'spring', stiffness: 520, damping: 44 }}
+          style={{ height: viewHeightPx[view] }}
+          className="rounded-3xl border dark:border-white/5 bg-white/5 p-4 pt-5 shadow-lg dark:bg-white/5"
+        >
+          <div className="h-full overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={view}
+                className="h-full"
+                initial={{ y: 16, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -16, opacity: 0 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+              >
+                {view === 'start' ? (
+                  <StartView
+                    assetId={props.assetId}
+                    pageNumber={props.pageNumber}
+                    gripProps={gripProps}
+                    subjectId={props.subjectId}
+                    topicId={props.topicId}
+                    onStarted={() => setView('progress')}
+                  />
+                ) : null}
 
-        {view === 'review' ? (
-          <ReviewView
-            seconds={seconds}
-            onClose={() => setView('default')}
-            onSave={async (input) => {
-              await props.onSaveAttempt(input);
-              setView('next');
-            }}
-          />
-        ) : null}
+                {view === 'progress' ? (
+                  <ProgressView
+                    gripProps={gripProps}
+                    onFinish={() => setView('review')}
+                    onCancel={() => {
+                      cancelAttempt();
+                      setView('start');
+                    }}
+                  />
+                ) : null}
 
-        {view === 'next' ? (
-          <NextView
-            onNextSubproblem={() => {
-              props.onNextSubproblem();
-              setView('default');
-            }}
-            onNewProblem={() => {
-              props.onNewProblem();
-              setView('default');
-            }}
-            onMarkProgress={() => {
-              props.onMarkProgress();
-              setView('default');
-            }}
-            onFinishExercise={() => {
-              props.onFinishExercise();
-              setView('default');
-            }}
-          />
-        ) : null}
-      </div>
+                {view === 'review' ? (
+                  <ReviewView
+                    gripProps={gripProps}
+                    onClose={() => setView('progress')}
+                    onSave={async (input) => {
+                      if (!active) throw new Error('Keine aktive Session');
+                      await ensureStudySession({
+                        subjectId: active.subjectId,
+                        topicId: active.topicId,
+                        startedAtMs: active.startedAtMs,
+                        plannedDurationMs: active.plannedDurationMs,
+                      });
+                      await logAttempt({
+                        assetId: props.assetId,
+                        problemIdx,
+                        subproblemLabel,
+                        endedAtMs: Date.now(),
+                        result: input.result,
+                        note: input.note,
+                        errorType: input.errorType,
+                      });
+                      setView('next');
+                    }}
+                  />
+                ) : null}
+
+                {view === 'next' ? (
+                  <NextView
+                    gripProps={gripProps}
+                    onNextSubproblem={() => {
+                      setSubproblemLabel(nextLabelWrap(subproblemLabel));
+                      setView('start');
+                    }}
+                    onNewProblem={() => {
+                      setProblemIdx(problemIdx + 1);
+                      setSubproblemLabel('a');
+                      setView('start');
+                    }}
+                    onMarkProgress={() => {
+                      props.onOpenExerciseReview();
+                      setView('start');
+                    }}
+                    onFinishExercise={async () => {
+                      await setExerciseStatus(props.assetId, 'covered');
+                      props.onOpenExerciseReview();
+                      setView('start');
+                    }}
+                  />
+                ) : null}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
+}
+
+function nextLabelWrap(label: string) {
+  const l = label.trim();
+  if (l.length !== 1) return l || 'a';
+  const c = l.toLowerCase().charCodeAt(0);
+  if (c < 97 || c > 122) return l;
+  if (c === 122) return 'a';
+  return String.fromCharCode(c + 1);
 }

@@ -70,45 +70,43 @@ export function ActiveSessionWidget(props: { active: ActiveSession }) {
       className="fixed z-9000 w-[200px] max-w-[calc(100vw-32px)]"
       style={{ left: pos.x, top: pos.y }}
     >
-      <div className="rounded-full overflow-hidden bg-white dark:bg-green-400/0">
-        <div
-          style={{ backgroundColor: isAssetOrStudyPage ? subjectColor : subjectColor + '4D' }}
-          className="w-full h-full dark:bg-white/10!"
-        >
-          <div className="flex items-stretch p-1.5">
-            <button
-              style={{ backgroundColor: subjectColor }}
-              type="button"
-              onClick={() => void stopSession()}
-              className="inline-flex size-8 items-center justify-center rounded-full text-white/70 dark:bg-white/90! dark:text-black/60"
-              aria-label="Stop"
-              title="Session beenden"
-            >
-              <IoStop className="size-4" />
-            </button>
+      <div
+        style={{ backgroundColor: isAssetOrStudyPage ? subjectColor : subjectColor + '4D' }}
+        className="w-full h-full dark:bg-white/5! rounded-full dark:border border-white/5"
+      >
+        <div className="flex items-stretch p-1.5">
+          <button
+            style={{ backgroundColor: subjectColor }}
+            type="button"
+            onClick={() => void stopSession()}
+            className="inline-flex cursor-pointer size-8 items-center justify-center rounded-full text-white/70 dark:bg-white/90! dark:text-black/60"
+            aria-label="Stop"
+            title="Session beenden"
+          >
+            <IoStop className="size-4" />
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="flex min-w-0 flex-1 flex-col justify-center rounded-lg px-2.5 text-left"
-              aria-expanded={expanded}
-            >
-              <div className="tabular-nums leading-3.7 text-xs font-bold">{timerLabel}</div>
-              <div className="truncate text-xs opacity-70 leading-3.7">
-                {topicName ?? active.topicId}
-              </div>
-            </button>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex cursor-pointer min-w-0 flex-1 flex-col justify-center rounded-lg px-2.5 text-left"
+            aria-expanded={expanded}
+          >
+            <div className="tabular-nums leading-3.7 text-xs font-bold">{timerLabel}</div>
+            <div className="truncate text-xs opacity-70 leading-3.7">
+              {topicName ?? active.topicId}
+            </div>
+          </button>
 
-            <button
-              type="button"
-              className="inline-flex pr-1.5 items-center justify-center text-black/70 hover:text-black/90"
-              aria-label="Verschieben"
-              title="Ziehen zum Verschieben"
-              {...gripProps}
-            >
-              <GripVertical className="size-4.5" />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="inline-flex pr-1.5 items-center justify-center text-black/70 hover:text-black/90 dark:text-white/60 cursor-grab active:cursor-grabbing"
+            aria-label="Verschieben"
+            title="Ziehen zum Verschieben"
+            {...gripProps}
+          >
+            <GripVertical className="size-5" />
+          </button>
         </div>
       </div>
 

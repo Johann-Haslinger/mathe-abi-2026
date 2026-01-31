@@ -1,4 +1,4 @@
-import { ArrowLeft, Info, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FullscreenViewerFrame } from '../../../components/FullscreenViewerFrame';
@@ -30,19 +30,10 @@ export function StudyPage() {
 
   const {
     studySessionId,
-    attemptStartedAtMs,
-    problemIdx,
-    subproblemLabel,
     bindToSession,
     ensureStudySession,
-    setProblemIdx,
-    setSubproblemLabel,
-    startAttempt,
-    cancelAttempt,
-    logAttempt,
     exerciseStatusByAssetId,
     loadExerciseStatus,
-    setExerciseStatus,
     reset,
   } = useStudyStore();
 
@@ -92,6 +83,34 @@ export function StudyPage() {
       ? (exerciseStatusByAssetId[guardState.asset.id] ?? 'unknown')
       : 'unknown';
 
+  const openInfoPanel = () => setInfoOpen(true);
+  const closeInfoPanel = () => setInfoOpen(false);
+
+  const assetForNav =
+    guardState.kind === 'ok' || guardState.kind === 'needStart' || guardState.kind === 'needSwitch'
+      ? guardState.asset
+      : null;
+
+  const goToAssetTopic = () => {
+    if (!assetForNav) {
+      navigate('/dashboard');
+      return;
+    }
+    navigate(`/subjects/${assetForNav.subjectId}/topics/${assetForNav.topicId}`);
+  };
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (guardState.kind !== 'ok') return;
+      if (e.key.toLowerCase() !== 'i') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (infoOpen) return;
+      openInfoPanel();
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [guardState.kind, infoOpen]);
+
   if (guardState.kind === 'notfound') return <NotFoundPage />;
   if (guardState.kind === 'loading') return <div className="text-sm text-slate-400">Lade…</div>;
   if (guardState.kind === 'error')
@@ -102,16 +121,6 @@ export function StudyPage() {
   return (
     <FullscreenViewerFrame
       accentColor={subjectAccent}
-      overlayLeft={
-        <ViewerIconButton ariaLabel="Zurück" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </ViewerIconButton>
-      }
-      overlayRight={
-        <ViewerIconButton ariaLabel="Info" onClick={() => setInfoOpen(true)}>
-          <Info className="h-5 w-5" />
-        </ViewerIconButton>
-      }
       overlayInfo={
         infoOpen && guardState.kind === 'ok' ? (
           <div className="w-[min(420px,calc(100vw-24px))] rounded-2xl border border-white/10 bg-slate-950/85 p-4 text-slate-100 shadow-2xl backdrop-blur">
@@ -120,7 +129,7 @@ export function StudyPage() {
                 <div className="text-sm font-semibold">Info</div>
                 <div className="mt-1 truncate text-xs text-slate-300">{title}</div>
               </div>
-              <ViewerIconButton ariaLabel="Schließen" onClick={() => setInfoOpen(false)}>
+              <ViewerIconButton ariaLabel="Schließen" onClick={closeInfoPanel}>
                 <X className="h-5 w-5" />
               </ViewerIconButton>
             </div>
@@ -139,19 +148,19 @@ export function StudyPage() {
           type="button"
           aria-label="Info schließen"
           className="absolute inset-0 z-10 cursor-default bg-transparent"
-          onClick={() => setInfoOpen(false)}
+          onClick={closeInfoPanel}
         />
       ) : null}
 
       <Modal
         open={guardState.kind === 'needStart'}
         title="Session starten?"
-        onClose={() => navigate(-1)}
+        onClose={goToAssetTopic}
         footer={
           <>
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={goToAssetTopic}
               className="rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-50 hover:bg-slate-700"
             >
               Abbrechen
@@ -177,12 +186,12 @@ export function StudyPage() {
       <Modal
         open={guardState.kind === 'needSwitch'}
         title="Session wechseln?"
-        onClose={() => navigate(-1)}
+        onClose={goToAssetTopic}
         footer={
           <>
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={goToAssetTopic}
               className="rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-50 hover:bg-slate-700"
             >
               Abbrechen
@@ -221,42 +230,9 @@ export function StudyPage() {
             <FloatingQuickLogPanel
               assetId={guardState.asset.id}
               pageNumber={pageNumber}
-              exerciseStatus={exerciseStatus}
-              problemIdx={problemIdx}
-              subproblemLabel={subproblemLabel}
-              attemptStartedAtMs={attemptStartedAtMs}
-              onProblemIdxChange={setProblemIdx}
-              onSubproblemLabelChange={setSubproblemLabel}
-              onStartAttempt={startAttempt}
-              onCancelAttempt={cancelAttempt}
-              onSaveAttempt={async ({ result, note, errorType }) => {
-                if (!active) throw new Error('Keine aktive Session');
-                await ensureStudySession({
-                  subjectId: active.subjectId,
-                  topicId: active.topicId,
-                  startedAtMs: active.startedAtMs,
-                  plannedDurationMs: active.plannedDurationMs,
-                });
-                await logAttempt({
-                  assetId: guardState.asset.id,
-                  problemIdx,
-                  subproblemLabel,
-                  endedAtMs: Date.now(),
-                  result,
-                  note,
-                  errorType,
-                });
-              }}
-              onNextSubproblem={() => setSubproblemLabel(nextLabel(subproblemLabel))}
-              onNewProblem={() => {
-                setProblemIdx(problemIdx + 1);
-                setSubproblemLabel('a');
-              }}
-              onMarkProgress={() => setReviewOpen(true)}
-              onFinishExercise={async () => {
-                await setExerciseStatus(guardState.asset.id, 'covered');
-                setReviewOpen(true);
-              }}
+              subjectId={guardState.asset.subjectId}
+              topicId={guardState.asset.topicId}
+              onOpenExerciseReview={() => setReviewOpen(true)}
             />
           </>
         ) : (
@@ -354,13 +330,4 @@ function useStudyAssetData(assetId: string | undefined) {
   }, [assetId]);
 
   return { asset, file, pdfData, loading, error };
-}
-
-function nextLabel(label: string) {
-  const l = label.trim();
-  if (l.length !== 1) return l || 'a';
-  const c = l.toLowerCase().charCodeAt(0);
-  if (c < 97 || c > 122) return l;
-  if (c === 122) return 'a';
-  return String.fromCharCode(c + 1);
 }

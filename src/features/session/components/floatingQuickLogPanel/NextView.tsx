@@ -1,12 +1,18 @@
+import { PanelViewHeader, type DragGripProps } from './PanelViewHeader';
+
 export function NextView(props: {
-  onNextSubproblem: () => void
-  onNewProblem: () => void
-  onMarkProgress: () => void
-  onFinishExercise: () => void
+  gripProps: DragGripProps;
+  onNextSubproblem: () => void;
+  onNewProblem: () => void;
+  onMarkProgress: () => void;
+  onFinishExercise: () => void;
 }) {
   return (
     <div className="space-y-3">
-      <div className="text-xs font-semibold text-slate-300">Wie geht’s weiter?</div>
+      <PanelViewHeader
+        right={<div className="text-right text-xs font-semibold text-white/80">Wie geht’s weiter?</div>}
+        gripProps={props.gripProps}
+      />
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -38,5 +44,5 @@ export function NextView(props: {
         </button>
       </div>
     </div>
-  )
+  );
 }

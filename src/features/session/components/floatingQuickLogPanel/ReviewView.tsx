@@ -1,38 +1,64 @@
-import { Check, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import type { AttemptResult } from '../../../../domain/models'
+import { Check, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import type { AttemptResult } from '../../../../domain/models';
+import { useStudyStore } from '../../stores/studyStore';
+import { PanelViewHeader, type DragGripProps } from './PanelViewHeader';
 
 export function ReviewView(props: {
-  seconds: number
-  onClose: () => void
-  onSave: (input: { result: AttemptResult; note?: string; errorType?: string }) => Promise<void> | void
+  gripProps: DragGripProps;
+  onClose: () => void;
+  onSave: (input: {
+    result: AttemptResult;
+    note?: string;
+    errorType?: string;
+  }) => Promise<void> | void;
 }) {
-  const [result, setResult] = useState<AttemptResult>('correct')
-  const [note, setNote] = useState('')
-  const [errorType, setErrorType] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [result, setResult] = useState<AttemptResult>('correct');
+  const [note, setNote] = useState('');
+  const [errorType, setErrorType] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const showError = useMemo(() => result !== 'correct', [result])
+  const { attemptStartedAtMs } = useStudyStore();
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!attemptStartedAtMs) return;
+    const t = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [attemptStartedAtMs]);
+
+  const seconds = useMemo(() => {
+    if (!attemptStartedAtMs) return 0;
+    return Math.max(0, Math.floor((nowMs - attemptStartedAtMs) / 1000));
+  }, [nowMs, attemptStartedAtMs]);
+
+  const showError = useMemo(() => result !== 'correct', [result]);
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs font-semibold text-slate-300">Review</div>
-          <div className="mt-0.5 text-xs text-slate-400">
-            Zeit: {formatDuration(props.seconds)}
+      <PanelViewHeader
+        right={
+          <div className="flex items-center gap-1">
+            <div className="text-right text-xs font-semibold">
+              <span className="text-white/80">Review</span>
+              <span className="ml-2 text-white/60">
+                Zeit: <span className="tabular-nums">{formatDuration(seconds)}</span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={props.onClose}
+              className="rounded-md p-2 text-slate-300 hover:bg-slate-900 hover:text-slate-50"
+              aria-label="Schließen"
+              title="Schließen"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-        </div>
-        <button
-          type="button"
-          onClick={props.onClose}
-          className="rounded-md p-2 text-slate-300 hover:bg-slate-900 hover:text-slate-50"
-          aria-label="Schließen"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+        }
+        gripProps={props.gripProps}
+      />
 
       <div className="flex flex-wrap gap-2">
         <ResultChip active={result === 'correct'} label="✅" onClick={() => setResult('correct')} />
@@ -72,18 +98,18 @@ export function ReviewView(props: {
         <button
           type="button"
           onClick={async () => {
-            setSaving(true)
-            setSaveError(null)
+            setSaving(true);
+            setSaveError(null);
             try {
               await props.onSave({
                 result,
                 note: note.trim() || undefined,
                 errorType: showError ? errorType.trim() || undefined : undefined,
-              })
+              });
             } catch (e) {
-              setSaveError(e instanceof Error ? e.message : 'Fehler')
+              setSaveError(e instanceof Error ? e.message : 'Fehler');
             } finally {
-              setSaving(false)
+              setSaving(false);
             }
           }}
           className="inline-flex items-center gap-2 rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-60"
@@ -103,7 +129,7 @@ export function ReviewView(props: {
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 function ResultChip(props: { active: boolean; label: string; onClick: () => void }) {
@@ -119,11 +145,11 @@ function ResultChip(props: { active: boolean; label: string; onClick: () => void
     >
       {props.label}
     </button>
-  )
+  );
 }
 
 function formatDuration(seconds: number) {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${String(s).padStart(2, '0')}`
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
