@@ -1,56 +1,56 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { AttemptResult, ExercisePageStatus } from '../../../domain/models'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { AttemptResult, ExercisePageStatus } from '../../../domain/models';
 import {
   attemptRepo,
   exerciseRepo,
   problemRepo,
   studySessionRepo,
   subproblemRepo,
-} from '../../../repositories'
+} from '../../../repositories';
 
 function getSessionKey(input: { subjectId: string; topicId: string; startedAtMs: number }) {
-  return `${input.subjectId}:${input.topicId}:${input.startedAtMs}`
+  return `${input.subjectId}:${input.topicId}:${input.startedAtMs}`;
 }
 
 type StudyState = {
-  boundSessionKey: string | null
-  studySessionId: string | null
-  attemptStartedAtMs: number | null
-  problemIdx: number
-  subproblemLabel: string
-  exerciseStatusByAssetId: Record<string, ExercisePageStatus>
+  boundSessionKey: string | null;
+  studySessionId: string | null;
+  attemptStartedAtMs: number | null;
+  problemIdx: number;
+  subproblemLabel: string;
+  exerciseStatusByAssetId: Record<string, ExercisePageStatus>;
 
-  bindToSession: (input: { subjectId: string; topicId: string; startedAtMs: number }) => void
+  bindToSession: (input: { subjectId: string; topicId: string; startedAtMs: number }) => void;
 
   ensureStudySession: (input: {
-    subjectId: string
-    topicId: string
-    startedAtMs: number
-    plannedDurationMs?: number
-  }) => Promise<string>
+    subjectId: string;
+    topicId: string;
+    startedAtMs: number;
+    plannedDurationMs?: number;
+  }) => Promise<string>;
 
-  setProblemIdx: (idx: number) => void
-  setSubproblemLabel: (label: string) => void
+  setProblemIdx: (idx: number) => void;
+  setSubproblemLabel: (label: string) => void;
 
-  startAttempt: () => void
-  cancelAttempt: () => void
+  startAttempt: () => void;
+  cancelAttempt: () => void;
 
-  loadExerciseStatus: (assetId: string) => Promise<void>
-  setExerciseStatus: (assetId: string, status: ExercisePageStatus) => Promise<void>
+  loadExerciseStatus: (assetId: string) => Promise<void>;
+  setExerciseStatus: (assetId: string, status: ExercisePageStatus) => Promise<void>;
 
   logAttempt: (input: {
-    assetId: string
-    problemIdx: number
-    subproblemLabel: string
-    endedAtMs: number
-    result: AttemptResult
-    note?: string
-    errorType?: string
-  }) => Promise<void>
+    assetId: string;
+    problemIdx: number;
+    subproblemLabel: string;
+    endedAtMs: number;
+    result: AttemptResult;
+    note?: string;
+    errorType?: string;
+  }) => Promise<void>;
 
-  reset: () => void
-}
+  reset: () => void;
+};
 
 export const useStudyStore = create<StudyState>()(
   persist(
@@ -64,8 +64,8 @@ export const useStudyStore = create<StudyState>()(
 
       bindToSession: (input) =>
         set((s) => {
-          const key = getSessionKey(input)
-          if (s.boundSessionKey === key) return s
+          const key = getSessionKey(input);
+          if (s.boundSessionKey === key) return s;
           return {
             boundSessionKey: key,
             studySessionId: null,
@@ -73,75 +73,75 @@ export const useStudyStore = create<StudyState>()(
             problemIdx: 1,
             subproblemLabel: 'a',
             exerciseStatusByAssetId: {},
-          }
+          };
         }),
 
       ensureStudySession: async ({ subjectId, topicId, startedAtMs, plannedDurationMs }) => {
-        const key = getSessionKey({ subjectId, topicId, startedAtMs })
-        const current = get()
+        const key = getSessionKey({ subjectId, topicId, startedAtMs });
+        const current = get();
         if (current.boundSessionKey !== key) {
-          current.bindToSession({ subjectId, topicId, startedAtMs })
+          current.bindToSession({ subjectId, topicId, startedAtMs });
         }
 
-        const existing = get().studySessionId
-        if (existing) return existing
+        const existing = get().studySessionId;
+        if (existing) return existing;
         const created = await studySessionRepo.create({
           subjectId,
           topicId,
           startedAtMs,
           plannedDurationMs,
-        })
-        set({ studySessionId: created.id })
-        return created.id
+        });
+        set({ studySessionId: created.id });
+        return created.id;
       },
 
       setProblemIdx: (idx) => set({ problemIdx: idx }),
       setSubproblemLabel: (label) => set({ subproblemLabel: label }),
 
       startAttempt: () => {
-        if (get().attemptStartedAtMs) return
-        set({ attemptStartedAtMs: Date.now() })
+        if (get().attemptStartedAtMs) return;
+        set({ attemptStartedAtMs: Date.now() });
       },
 
       cancelAttempt: () => set({ attemptStartedAtMs: null }),
 
       loadExerciseStatus: async (assetId) => {
-        const ex = await exerciseRepo.getByAsset(assetId)
+        const ex = await exerciseRepo.getByAsset(assetId);
         set((s) => ({
           exerciseStatusByAssetId: {
             ...s.exerciseStatusByAssetId,
             [assetId]: ex?.status ?? 'unknown',
           },
-        }))
+        }));
       },
 
       setExerciseStatus: async (assetId, status) => {
-        const ex = await exerciseRepo.upsert({ assetId, status })
+        const ex = await exerciseRepo.upsert({ assetId, status });
         set((s) => ({
           exerciseStatusByAssetId: { ...s.exerciseStatusByAssetId, [assetId]: ex.status },
-        }))
+        }));
       },
 
       logAttempt: async (input) => {
-        const { studySessionId, attemptStartedAtMs } = get()
-        if (!studySessionId) throw new Error('No studySessionId')
-        if (!attemptStartedAtMs) throw new Error('No running attempt')
+        const { studySessionId, attemptStartedAtMs } = get();
+        if (!studySessionId) throw new Error('No studySessionId');
+        if (!attemptStartedAtMs) throw new Error('No running attempt');
 
-        const startedAtMs = attemptStartedAtMs
-        const endedAtMs = input.endedAtMs
-        const seconds = Math.max(1, Math.round((endedAtMs - startedAtMs) / 1000))
+        const startedAtMs = attemptStartedAtMs;
+        const endedAtMs = input.endedAtMs;
+        const seconds = Math.max(1, Math.round((endedAtMs - startedAtMs) / 1000));
 
-        const exercise = await exerciseRepo.upsert({ assetId: input.assetId, status: 'partial' })
+        const exercise = await exerciseRepo.upsert({ assetId: input.assetId, status: 'partial' });
 
         const problem = await problemRepo.getOrCreate({
           exerciseId: exercise.id,
           idx: input.problemIdx,
-        })
+        });
 
         const subproblem = await subproblemRepo.getOrCreate({
           problemId: problem.id,
           label: input.subproblemLabel,
-        })
+        });
 
         await attemptRepo.create({
           studySessionId,
@@ -152,7 +152,7 @@ export const useStudyStore = create<StudyState>()(
           result: input.result,
           note: input.note,
           errorType: input.errorType,
-        })
+        });
 
         set((s) => ({
           attemptStartedAtMs: null,
@@ -160,7 +160,7 @@ export const useStudyStore = create<StudyState>()(
             ...s.exerciseStatusByAssetId,
             [input.assetId]: exercise.status,
           },
-        }))
+        }));
       },
 
       reset: () =>
@@ -186,5 +186,4 @@ export const useStudyStore = create<StudyState>()(
       }),
     },
   ),
-)
-
+);

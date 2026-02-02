@@ -1,6 +1,6 @@
-import { db } from '../../db/db'
-import type { Asset, Folder, Subject, Topic } from '../../domain/models'
-import { newId } from '../../lib/id'
+import { db } from '../../db/db';
+import type { Asset, Folder, Subject, Topic } from '../../domain/models';
+import { newId } from '../../lib/id';
 import type {
   AssetCreateInput,
   AssetRepository,
@@ -14,15 +14,15 @@ import type {
   TopicCreateInput,
   TopicRepository,
   TopicUpdateInput,
-} from '../interfaces'
+} from '../interfaces';
 
 export class LocalSubjectRepository implements SubjectRepository {
   async list(): Promise<Subject[]> {
-    return db.subjects.orderBy('name').toArray()
+    return db.subjects.orderBy('name').toArray();
   }
 
   async get(id: string): Promise<Subject | undefined> {
-    return db.subjects.get(id)
+    return db.subjects.get(id);
   }
 
   async create(input: SubjectCreateInput): Promise<Subject> {
@@ -31,26 +31,24 @@ export class LocalSubjectRepository implements SubjectRepository {
       name: input.name.trim(),
       color: input.color,
       iconEmoji: input.iconEmoji?.trim() || undefined,
-    }
-    await db.subjects.add(row)
-    return row
+    };
+    await db.subjects.add(row);
+    return row;
   }
 
   async update(id: string, patch: SubjectUpdateInput): Promise<Subject> {
-    const current = await db.subjects.get(id)
-    if (!current) throw new Error('Subject not found')
+    const current = await db.subjects.get(id);
+    if (!current) throw new Error('Subject not found');
 
     const next: Subject = {
       ...current,
       ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
       ...(patch.color !== undefined ? { color: patch.color } : {}),
-      ...(patch.iconEmoji !== undefined
-        ? { iconEmoji: patch.iconEmoji?.trim() || undefined }
-        : {}),
-    }
+      ...(patch.iconEmoji !== undefined ? { iconEmoji: patch.iconEmoji?.trim() || undefined } : {}),
+    };
 
-    await db.subjects.put(next)
-    return next
+    await db.subjects.put(next);
+    return next;
   }
 
   async delete(id: string): Promise<void> {
@@ -58,90 +56,82 @@ export class LocalSubjectRepository implements SubjectRepository {
       'rw',
       [db.subjects, db.topics, db.folders, db.assets, db.assetFiles],
       async () => {
-        const topicIds = await db.topics.where('subjectId').equals(id).primaryKeys()
-        const assetIds = await db.assets.where('subjectId').equals(id).primaryKeys()
+        const topicIds = await db.topics.where('subjectId').equals(id).primaryKeys();
+        const assetIds = await db.assets.where('subjectId').equals(id).primaryKeys();
 
-        await db.assetFiles.bulkDelete(assetIds as string[])
-        await db.assets.where('subjectId').equals(id).delete()
-        await db.folders.where('topicId').anyOf(topicIds as string[]).delete()
-        await db.topics.where('subjectId').equals(id).delete()
-        await db.subjects.delete(id)
+        await db.assetFiles.bulkDelete(assetIds as string[]);
+        await db.assets.where('subjectId').equals(id).delete();
+        await db.folders
+          .where('topicId')
+          .anyOf(topicIds as string[])
+          .delete();
+        await db.topics.where('subjectId').equals(id).delete();
+        await db.subjects.delete(id);
       },
-    )
+    );
   }
 }
 
 export class LocalTopicRepository implements TopicRepository {
   async listBySubject(subjectId: string): Promise<Topic[]> {
-    return db.topics.where('subjectId').equals(subjectId).sortBy('orderIndex')
+    const rows = await db.topics.where('subjectId').equals(subjectId).toArray();
+    return rows
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   }
 
   async get(id: string): Promise<Topic | undefined> {
-    return db.topics.get(id)
+    return db.topics.get(id);
   }
 
   async create(input: TopicCreateInput): Promise<Topic> {
-    const existing = await this.listBySubject(input.subjectId)
-    const maxIdx = existing.reduce((m, t) => Math.max(m, t.orderIndex), -1)
-
     const row: Topic = {
       id: newId(),
       subjectId: input.subjectId,
       name: input.name.trim(),
-      orderIndex: maxIdx + 1,
       iconEmoji: input.iconEmoji?.trim() || undefined,
-    }
-    await db.topics.add(row)
-    return row
+    };
+    await db.topics.add(row);
+    return row;
   }
 
   async update(id: string, patch: TopicUpdateInput): Promise<Topic> {
-    const current = await db.topics.get(id)
-    if (!current) throw new Error('Topic not found')
+    const current = await db.topics.get(id);
+    if (!current) throw new Error('Topic not found');
 
     const next: Topic = {
       ...current,
       ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
-      ...(patch.orderIndex !== undefined ? { orderIndex: patch.orderIndex } : {}),
-      ...(patch.iconEmoji !== undefined
-        ? { iconEmoji: patch.iconEmoji?.trim() || undefined }
-        : {}),
-    }
+      ...(patch.iconEmoji !== undefined ? { iconEmoji: patch.iconEmoji?.trim() || undefined } : {}),
+    };
 
-    await db.topics.put(next)
-    return next
+    await db.topics.put(next);
+    return next;
   }
 
   async delete(id: string): Promise<void> {
-    await db.transaction(
-      'rw',
-      db.topics,
-      db.folders,
-      db.assets,
-      db.assetFiles,
-      async () => {
-        const assetIds = await db.assets.where('topicId').equals(id).primaryKeys()
-        await db.assetFiles.bulkDelete(assetIds as string[])
-        await db.assets.where('topicId').equals(id).delete()
-        await db.folders.where('topicId').equals(id).delete()
-        await db.topics.delete(id)
-      },
-    )
+    await db.transaction('rw', db.topics, db.folders, db.assets, db.assetFiles, async () => {
+      const assetIds = await db.assets.where('topicId').equals(id).primaryKeys();
+      await db.assetFiles.bulkDelete(assetIds as string[]);
+      await db.assets.where('topicId').equals(id).delete();
+      await db.folders.where('topicId').equals(id).delete();
+      await db.topics.delete(id);
+    });
   }
 }
 
 export class LocalFolderRepository implements FolderRepository {
   async listByTopic(topicId: string): Promise<Folder[]> {
-    return db.folders.where('topicId').equals(topicId).sortBy('orderIndex')
+    return db.folders.where('topicId').equals(topicId).sortBy('orderIndex');
   }
 
   async get(id: string): Promise<Folder | undefined> {
-    return db.folders.get(id)
+    return db.folders.get(id);
   }
 
   async create(input: FolderCreateInput): Promise<Folder> {
-    const existing = await this.listByTopic(input.topicId)
-    const maxIdx = existing.reduce((m, f) => Math.max(m, f.orderIndex), -1)
+    const existing = await this.listByTopic(input.topicId);
+    const maxIdx = existing.reduce((m, f) => Math.max(m, f.orderIndex), -1);
 
     const row: Folder = {
       id: newId(),
@@ -150,59 +140,55 @@ export class LocalFolderRepository implements FolderRepository {
       name: input.name.trim(),
       orderIndex: maxIdx + 1,
       iconEmoji: input.iconEmoji?.trim() || undefined,
-    }
-    await db.folders.add(row)
-    return row
+    };
+    await db.folders.add(row);
+    return row;
   }
 
   async update(id: string, patch: FolderUpdateInput): Promise<Folder> {
-    const current = await db.folders.get(id)
-    if (!current) throw new Error('Folder not found')
+    const current = await db.folders.get(id);
+    if (!current) throw new Error('Folder not found');
 
     const next: Folder = {
       ...current,
       ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
-      ...(patch.parentFolderId !== undefined
-        ? { parentFolderId: patch.parentFolderId }
-        : {}),
+      ...(patch.parentFolderId !== undefined ? { parentFolderId: patch.parentFolderId } : {}),
       ...(patch.orderIndex !== undefined ? { orderIndex: patch.orderIndex } : {}),
-      ...(patch.iconEmoji !== undefined
-        ? { iconEmoji: patch.iconEmoji?.trim() || undefined }
-        : {}),
-    }
+      ...(patch.iconEmoji !== undefined ? { iconEmoji: patch.iconEmoji?.trim() || undefined } : {}),
+    };
 
-    await db.folders.put(next)
-    return next
+    await db.folders.put(next);
+    return next;
   }
 
   async delete(id: string): Promise<void> {
-    const current = await db.folders.get(id)
-    if (!current) return
+    const current = await db.folders.get(id);
+    if (!current) return;
 
     await db.transaction('rw', [db.folders, db.assets], async () => {
-      await db.assets.where('folderId').equals(id).modify({ folderId: undefined })
+      await db.assets.where('folderId').equals(id).modify({ folderId: undefined });
 
       await db.folders
         .where('parentFolderId')
         .equals(id)
-        .modify({ parentFolderId: current.parentFolderId })
-      await db.folders.delete(id)
-    })
+        .modify({ parentFolderId: current.parentFolderId });
+      await db.folders.delete(id);
+    });
   }
 }
 
 export class LocalAssetRepository implements AssetRepository {
   async listByTopic(topicId: string): Promise<Asset[]> {
-    const items = await db.assets.where('topicId').equals(topicId).sortBy('createdAtMs')
-    return items.reverse()
+    const items = await db.assets.where('topicId').equals(topicId).sortBy('createdAtMs');
+    return items.reverse();
   }
 
   async get(id: string): Promise<Asset | undefined> {
-    return db.assets.get(id)
+    return db.assets.get(id);
   }
 
   async create(input: AssetCreateInput): Promise<Asset> {
-    const now = Date.now()
+    const now = Date.now();
     const row: Asset = {
       id: newId(),
       subjectId: input.subjectId,
@@ -211,30 +197,29 @@ export class LocalAssetRepository implements AssetRepository {
       type: input.type,
       title: input.title.trim(),
       createdAtMs: now,
-    }
-    await db.assets.add(row)
-    return row
+    };
+    await db.assets.add(row);
+    return row;
   }
 
   async update(id: string, patch: AssetUpdateInput): Promise<Asset> {
-    const current = await db.assets.get(id)
-    if (!current) throw new Error('Asset not found')
+    const current = await db.assets.get(id);
+    if (!current) throw new Error('Asset not found');
 
     const next: Asset = {
       ...current,
       ...(patch.title !== undefined ? { title: patch.title.trim() } : {}),
       ...(patch.folderId !== undefined ? { folderId: patch.folderId } : {}),
       ...(patch.type !== undefined ? { type: patch.type } : {}),
-    }
-    await db.assets.put(next)
-    return next
+    };
+    await db.assets.put(next);
+    return next;
   }
 
   async delete(id: string): Promise<void> {
     await db.transaction('rw', db.assets, db.assetFiles, async () => {
-      await db.assetFiles.delete(id)
-      await db.assets.delete(id)
-    })
+      await db.assetFiles.delete(id);
+      await db.assets.delete(id);
+    });
   }
 }
-

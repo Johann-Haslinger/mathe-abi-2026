@@ -1,32 +1,27 @@
-import { ArrowDown, ArrowUp, Pencil, Play, Trash2 } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import type { Topic } from '../../../../domain/models'
+import { Pencil, Play, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import type { Topic } from '../../../../domain/models';
 
 export function TopicItem(props: {
-  subjectId: string
-  topic: Topic
-  index: number
-  total: number
-  from?: string
-  onStartSession: (topicId: string) => void
-  onMove: (topicId: string, direction: 'up' | 'down') => void
-  onEdit: (topic: Topic) => void
-  onDelete: (topic: Topic) => void
+  subjectId: string;
+  topic: Topic;
+  from?: string;
+  onStartSession: (topicId: string) => void;
+  onEdit: (topic: Topic) => void;
+  onDelete: (topic: Topic) => void;
 }) {
-  const { subjectId, topic: t, index, total, from, onStartSession, onMove, onEdit, onDelete } =
-    props
+  const { subjectId, topic: t, from, onStartSession, onEdit, onDelete } = props;
 
   return (
-    <li className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2">
+    <li className="p-4 w-full h-40 hover:scale-105 transition-all duration-300 bg-black/10 ">
+      <div className="text-2xl mb-2"> {t.iconEmoji ? `${t.iconEmoji} ` : '📔'} </div>
       <Link
         to={`/subjects/${subjectId}/topics/${t.id}`}
         state={from ? { from } : null}
-        className="min-w-0 truncate text-sm font-semibold text-slate-50 hover:underline"
+        className="min-w-0 truncate text-base font-medium text-slate-50 hover:underline"
       >
-        {t.iconEmoji ? `${t.iconEmoji} ` : ''}
         {t.name}
       </Link>
-
       <div className="flex items-center gap-1">
         <button
           type="button"
@@ -36,24 +31,6 @@ export function TopicItem(props: {
           title="Session starten"
         >
           <Play className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onMove(t.id, 'up')}
-          disabled={index === 0}
-          className="rounded-md p-2 text-slate-300 hover:bg-slate-900 hover:text-slate-50 disabled:opacity-30"
-          aria-label="Nach oben"
-        >
-          <ArrowUp className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onMove(t.id, 'down')}
-          disabled={index === total - 1}
-          className="rounded-md p-2 text-slate-300 hover:bg-slate-900 hover:text-slate-50 disabled:opacity-30"
-          aria-label="Nach unten"
-        >
-          <ArrowDown className="h-4 w-4" />
         </button>
 
         <button
@@ -74,6 +51,5 @@ export function TopicItem(props: {
         </button>
       </div>
     </li>
-  )
+  );
 }
-

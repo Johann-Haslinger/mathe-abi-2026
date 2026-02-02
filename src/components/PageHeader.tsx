@@ -10,8 +10,8 @@ export function PageHeader(props: {
   return (
     <div className="flex items-start pt-20 justify-between gap-4">
       <div>
+        <h1 className="text-[2.5rem] mb-2 font-semibold text-black dark:text-white">{title}</h1>
         {breadcrumb ? <div>{breadcrumb}</div> : null}
-        <h1 className="text-[2.5rem] font-semibold text-black dark:text-white">{title}</h1>
       </div>
 
       {actions ? <div className="shrink-0">{actions}</div> : null}

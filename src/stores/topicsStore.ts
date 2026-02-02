@@ -1,29 +1,20 @@
-import { create } from 'zustand'
-import type { Topic } from '../domain/models'
-import { topicRepo } from '../repositories'
+import { create } from 'zustand';
+import type { Topic } from '../domain/models';
+import { topicRepo } from '../repositories';
 
 type TopicsState = {
-  topicsBySubject: Record<string, Topic[]>
-  loadingBySubject: Record<string, boolean>
-  errorBySubject: Record<string, string | undefined>
-  refreshBySubject: (subjectId: string) => Promise<void>
-  createTopic: (input: {
-    subjectId: string
-    name: string
-    iconEmoji?: string
-  }) => Promise<Topic>
+  topicsBySubject: Record<string, Topic[]>;
+  loadingBySubject: Record<string, boolean>;
+  errorBySubject: Record<string, string | undefined>;
+  refreshBySubject: (subjectId: string) => Promise<void>;
+  createTopic: (input: { subjectId: string; name: string; iconEmoji?: string }) => Promise<Topic>;
   renameTopic: (
     id: string,
     subjectId: string,
     patch: { name?: string; iconEmoji?: string | undefined },
-  ) => Promise<Topic>
-  deleteTopic: (id: string, subjectId: string) => Promise<void>
-  moveTopic: (
-    subjectId: string,
-    topicId: string,
-    direction: 'up' | 'down',
-  ) => Promise<void>
-}
+  ) => Promise<Topic>;
+  deleteTopic: (id: string, subjectId: string) => Promise<void>;
+};
 
 export const useTopicsStore = create<TopicsState>((set, get) => ({
   topicsBySubject: {},
@@ -34,14 +25,14 @@ export const useTopicsStore = create<TopicsState>((set, get) => ({
     set((s) => ({
       loadingBySubject: { ...s.loadingBySubject, [subjectId]: true },
       errorBySubject: { ...s.errorBySubject, [subjectId]: undefined },
-    }))
+    }));
 
     try {
-      const topics = await topicRepo.listBySubject(subjectId)
+      const topics = await topicRepo.listBySubject(subjectId);
       set((s) => ({
         topicsBySubject: { ...s.topicsBySubject, [subjectId]: topics },
         loadingBySubject: { ...s.loadingBySubject, [subjectId]: false },
-      }))
+      }));
     } catch (e) {
       set((s) => ({
         loadingBySubject: { ...s.loadingBySubject, [subjectId]: false },
@@ -49,42 +40,24 @@ export const useTopicsStore = create<TopicsState>((set, get) => ({
           ...s.errorBySubject,
           [subjectId]: e instanceof Error ? e.message : 'Fehler beim Laden',
         },
-      }))
+      }));
     }
   },
 
   createTopic: async ({ subjectId, name, iconEmoji }) => {
-    const created = await topicRepo.create({ subjectId, name, iconEmoji })
-    await get().refreshBySubject(subjectId)
-    return created
+    const created = await topicRepo.create({ subjectId, name, iconEmoji });
+    await get().refreshBySubject(subjectId);
+    return created;
   },
 
   renameTopic: async (id, subjectId, patch) => {
-    const updated = await topicRepo.update(id, patch)
-    await get().refreshBySubject(subjectId)
-    return updated
+    const updated = await topicRepo.update(id, patch);
+    await get().refreshBySubject(subjectId);
+    return updated;
   },
 
   deleteTopic: async (id, subjectId) => {
-    await topicRepo.delete(id)
-    await get().refreshBySubject(subjectId)
+    await topicRepo.delete(id);
+    await get().refreshBySubject(subjectId);
   },
-
-  moveTopic: async (subjectId, topicId, direction) => {
-    const topics = get().topicsBySubject[subjectId] ?? []
-    const idx = topics.findIndex((t) => t.id === topicId)
-    if (idx === -1) return
-
-    const swapWith = direction === 'up' ? idx - 1 : idx + 1
-    if (swapWith < 0 || swapWith >= topics.length) return
-
-    const a = topics[idx]
-    const b = topics[swapWith]
-    await Promise.all([
-      topicRepo.update(a.id, { orderIndex: b.orderIndex }),
-      topicRepo.update(b.id, { orderIndex: a.orderIndex }),
-    ])
-    await get().refreshBySubject(subjectId)
-  },
-}))
-
+}));

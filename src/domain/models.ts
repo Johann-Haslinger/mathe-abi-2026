@@ -27,7 +27,6 @@ export type Topic = {
   id: Id;
   subjectId: Id;
   name: string;
-  orderIndex: number;
   iconEmoji?: string;
 };
 
