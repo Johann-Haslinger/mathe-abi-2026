@@ -1,8 +1,6 @@
-import { useMemo, type ReactNode } from 'react';
-import { hexToRgba } from '../features/session/viewer/viewerUtils';
+import { type ReactNode } from 'react';
 
 export type FullscreenViewerFrameProps = {
-  accentColor?: string;
   children: ReactNode;
   overlayLeft?: ReactNode;
   overlayRight?: ReactNode;
@@ -10,11 +8,9 @@ export type FullscreenViewerFrameProps = {
 };
 
 export function FullscreenViewerFrame(props: FullscreenViewerFrameProps) {
-  const tint = useMemo(() => hexToRgba(props.accentColor, 0.3), [props.accentColor]);
-
   return (
-    <div className="fixed inset-0 bg-white dark:bg-black z-40">
-      <div className="absolute inset-0" style={{ backgroundColor: tint }} />
+    <div className="fixed dark:bg-[#1D3352] inset-0 z-40">
+      <div className="absolute inset-0" />
       {props.children}
 
       {props.overlayLeft ? (
@@ -24,7 +20,7 @@ export function FullscreenViewerFrame(props: FullscreenViewerFrameProps) {
       ) : null}
 
       {props.overlayRight ? (
-        <div className="absolute right-6 top-8 z-10 flex items-center gap-2">
+        <div className="absolute right-6 z-10 flex items-center gap-2" style={{ top: 72 }}>
           {props.overlayRight}
         </div>
       ) : null}

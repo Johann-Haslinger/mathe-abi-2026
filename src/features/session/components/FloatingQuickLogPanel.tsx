@@ -68,7 +68,7 @@ export function FloatingQuickLogPanel(props: {
           animate={{ height: viewHeightPx[view] }}
           transition={{ type: 'spring', stiffness: 520, damping: 44 }}
           style={{ height: viewHeightPx[view] }}
-          className="rounded-3xl border dark:border-white/5 bg-white/5 p-4 pt-5 shadow-lg dark:bg-white/5"
+          className="rounded-3xl border bg-[#344763]/70 backdrop-blur p-4 pt-5 shadow-lg dark:border-white/5"
         >
           <div className="h-full overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>

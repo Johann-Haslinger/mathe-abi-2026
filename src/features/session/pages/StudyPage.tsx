@@ -114,7 +114,7 @@ export function StudyPage() {
   if (guardState.kind === 'notfound') return <NotFoundPage />;
   if (guardState.kind === 'loading')
     return (
-      <FullscreenViewerFrame accentColor={subjectAccent}>
+      <FullscreenViewerFrame>
         <div className="absolute inset-0 grid place-items-center">
           <div
             role="status"
@@ -131,7 +131,6 @@ export function StudyPage() {
 
   return (
     <FullscreenViewerFrame
-      accentColor={subjectAccent}
       overlayInfo={
         infoOpen && guardState.kind === 'ok' ? (
           <div className="w-[min(420px,calc(100vw-24px))] rounded-2xl border border-white/10 bg-slate-950/85 p-4 text-slate-100 shadow-2xl backdrop-blur">

@@ -36,7 +36,7 @@ export function ExerciseAssetView(props: { assetId: string }) {
   if (state.kind === 'notfound') return <NotFoundPage />;
   if (state.kind === 'loading')
     return (
-      <FullscreenViewerFrame accentColor={subjectAccent}>
+      <FullscreenViewerFrame>
         <div className="absolute inset-0 grid place-items-center">
           <div
             role="status"
@@ -63,7 +63,6 @@ export function ExerciseAssetView(props: { assetId: string }) {
 
   return (
     <FullscreenViewerFrame
-      accentColor={subjectAccent}
       overlayLeft={
         <ViewerIconButton ariaLabel="Zurück" onClick={() => navigate(-1)}>
           <IoChevronBack />
