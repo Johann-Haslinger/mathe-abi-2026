@@ -1,8 +1,9 @@
-import { FileUp, FolderPlus } from 'lucide-react';
+import { FileUp } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AutoBreadcrumbs } from '../../../components/AutoBreadcrumbs';
-import type { Asset, AssetType, Folder } from '../../../domain/models';
+import { PageHeader } from '../../../components/PageHeader';
+import type { Asset, AssetType } from '../../../domain/models';
 import { downloadBlob, openBlobInNewTab } from '../../../lib/blob';
 import { exerciseRepo } from '../../../repositories';
 import { useActiveSessionStore } from '../../../stores/activeSessionStore';
@@ -17,9 +18,7 @@ import {
 } from '../../session/modals/SessionSummaryModal';
 import { AssetItem } from './components/AssetItem';
 import { FilterChip } from './components/FilterChip';
-import { FolderTree } from './components/FolderTree';
 import { UploadAssetModal } from './modals/UploadAssetModal';
-import { UpsertFolderModal } from './modals/UpsertFolderModal';
 
 export function TopicPage() {
   const { subjectId, topicId } = useParams();
@@ -29,15 +28,7 @@ export function TopicPage() {
 
   const { subjects, refresh: refreshSubjects } = useSubjectsStore();
   const { topicsBySubject, refreshBySubject } = useTopicsStore();
-  const {
-    foldersByTopic,
-    loadingByTopic,
-    errorByTopic,
-    refreshByTopic,
-    createFolder,
-    renameFolder,
-    deleteFolder,
-  } = useFoldersStore();
+  const { foldersByTopic } = useFoldersStore();
 
   const {
     assetsByTopic,
@@ -58,10 +49,6 @@ export function TopicPage() {
   }, [subjectId, refreshBySubject]);
 
   useEffect(() => {
-    if (topicId) void refreshByTopic(topicId);
-  }, [topicId, refreshByTopic]);
-
-  useEffect(() => {
     if (topicId) void refreshAssetsByTopic(topicId);
   }, [topicId, refreshAssetsByTopic]);
 
@@ -73,22 +60,15 @@ export function TopicPage() {
   }, [topicsBySubject, subjectId, topicId]);
 
   const folders = useMemo(
-    () => (topicId ? (foldersByTopic[topicId] ?? []) : []),
+    () => (topicId ? foldersByTopic[topicId] ?? [] : []),
     [foldersByTopic, topicId],
   );
-  const foldersLoading = topicId ? (loadingByTopic[topicId] ?? false) : false;
-  const foldersError = topicId ? errorByTopic[topicId] : undefined;
-
-  const [createOpen, setCreateOpen] = useState(false);
-
-  const [editOpen, setEditOpen] = useState(false);
-  const [editing, setEditing] = useState<Folder | null>(null);
 
   const assets = useMemo(
-    () => (topicId ? (assetsByTopic[topicId] ?? []) : []),
+    () => (topicId ? assetsByTopic[topicId] ?? [] : []),
     [assetsByTopic, topicId],
   );
-  const assetsLoading = topicId ? (assetsLoadingByTopic[topicId] ?? false) : false;
+  const assetsLoading = topicId ? assetsLoadingByTopic[topicId] ?? false : false;
   const assetsError = topicId ? assetsErrorByTopic[topicId] : undefined;
 
   const folderNameById = useMemo(() => {
@@ -191,165 +171,68 @@ export function TopicPage() {
         topicName={topic?.name}
       />
 
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <AutoBreadcrumbs />
-          <div className="text-xs font-semibold text-slate-400">
-            {subject?.iconEmoji ? `${subject.iconEmoji} ` : ''}
-            {subject?.name ?? 'Fach'}
-          </div>
-          <h1 className="mt-1 text-2xl font-semibold text-slate-50">
-            {topic?.iconEmoji ? `${topic.iconEmoji} ` : ''}
-            {topic?.name ?? 'Thema'}
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">Folder sind nur Organisation (keine Logik).</p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={<AutoBreadcrumbs />}
+        title={topic ? `${topic.iconEmoji ? topic.iconEmoji + ' ' : ''}${topic.name}` : 'Thema'}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0] ?? null;
+          e.currentTarget.value = '';
+          if (!f) return;
+          setUploadFile(f);
+          setUploadOpen(true);
+        }}
+      />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <section className="rounded-xl border border-slate-800 bg-slate-950/40 p-4 lg:col-span-1">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-semibold text-slate-200">Folder</div>
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
-              className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-50 hover:bg-slate-700"
-            >
-              <FolderPlus className="h-4 w-4" />
-              Folder
-            </button>
-          </div>
+      <div>
+        {/* <TopicFolderSection /> */}
 
-          {foldersError ? (
-            <div className="mt-3 rounded-md border border-rose-900/60 bg-rose-950/30 px-3 py-2 text-sm text-rose-200">
-              {foldersError}
-            </div>
-          ) : null}
-
-          {foldersLoading ? (
-            <div className="mt-3 text-sm text-slate-400">Lade…</div>
-          ) : folders.length === 0 ? (
-            <div className="mt-3 text-sm text-slate-400">
-              Noch keine Folder. Optional: lege Folder für bessere Übersicht an.
-            </div>
-          ) : (
-            <FolderTree
-              folders={folders}
-              onRename={(f) => {
-                setEditing(f);
-                setEditOpen(true);
-              }}
-              onDelete={(f) => {
-                if (
-                  window.confirm(
-                    `Folder „${f.name}“ löschen? (Unterfolder werden eine Ebene hochgezogen)`,
-                  )
-                ) {
-                  void deleteFolder(f.id, topicId);
-                }
-              }}
-            />
-          )}
-        </section>
-
-        <section className="rounded-xl border border-slate-800 bg-slate-950/40 p-4 lg:col-span-2">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-slate-200">Assets</div>
-              <p className="mt-1 text-sm text-slate-400">
-                Uploads sind lokal gespeichert (IndexedDB). Für große Sammlungen ist später Supabase
-                Storage geplant.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => startUpload('exercise')}
-                className="inline-flex items-center gap-2 rounded-md bg-indigo-500 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-400"
-              >
-                <FileUp className="h-4 w-4" />
-                Übung hochladen
-              </button>
-              <button
-                type="button"
-                onClick={() => startUpload('cheatsheet')}
-                className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-50 hover:bg-slate-700"
-              >
-                <FileUp className="h-4 w-4" />
-                Merkblatt
-              </button>
-              <button
-                type="button"
-                onClick={() => startUpload('note')}
-                className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-50 hover:bg-slate-700"
-              >
-                <FileUp className="h-4 w-4" />
-                Notiz
-              </button>
-              <button
-                type="button"
-                onClick={() => startUpload('file')}
-                className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-50 hover:bg-slate-700"
-              >
-                <FileUp className="h-4 w-4" />
-                Datei
-              </button>
-            </div>
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0] ?? null;
-              e.currentTarget.value = '';
-              if (!f) return;
-              setUploadFile(f);
-              setUploadOpen(true);
-            }}
-          />
-
+        <section className="lg:col-span-2 px-4">
           {assetsError ? (
             <div className="mt-3 rounded-md border border-rose-900/60 bg-rose-950/30 px-3 py-2 text-sm text-rose-200">
               {assetsError}
             </div>
           ) : null}
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <FilterChip
-              active={assetFilter === 'all'}
-              onClick={() => setAssetFilter('all')}
-              label="Alle"
-            />
-            <FilterChip
-              active={assetFilter === 'exercise'}
-              onClick={() => setAssetFilter('exercise')}
-              label="Übungen"
-            />
-            <FilterChip
-              active={assetFilter === 'cheatsheet'}
-              onClick={() => setAssetFilter('cheatsheet')}
-              label="Merkblätter"
-            />
-            <FilterChip
-              active={assetFilter === 'note'}
-              onClick={() => setAssetFilter('note')}
-              label="Notizen"
-            />
-            <FilterChip
-              active={assetFilter === 'file'}
-              onClick={() => setAssetFilter('file')}
-              label="Dateien"
-            />
-
+          <div className="flex justify-between items-center">
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterChip
+                active={assetFilter === 'all'}
+                onClick={() => setAssetFilter('all')}
+                label="Alle"
+              />
+              <FilterChip
+                active={assetFilter === 'exercise'}
+                onClick={() => setAssetFilter('exercise')}
+                label="Übungen"
+              />
+              <FilterChip
+                active={assetFilter === 'cheatsheet'}
+                onClick={() => setAssetFilter('cheatsheet')}
+                label="Merkblätter"
+              />
+              <FilterChip
+                active={assetFilter === 'note'}
+                onClick={() => setAssetFilter('note')}
+                label="Notizen"
+              />
+              <FilterChip
+                active={assetFilter === 'file'}
+                onClick={() => setAssetFilter('file')}
+                label="Dateien"
+              />
+            </div>
             <button
               type="button"
-              onClick={() => void refreshAssetsByTopic(topicId)}
-              className="ml-auto rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-50 hover:bg-slate-700"
+              onClick={() => startUpload('exercise')}
+              className="inline-flex items-center gap-2 rounded-md bg-white/5 px-3 py-2 text-xs font-semibold dark:text-white"
             >
-              Aktualisieren
+              <FileUp className="h-4 w-4" />
+              Upload
             </button>
           </div>
 
@@ -363,7 +246,7 @@ export function TopicPage() {
                 <AssetItem
                   key={a.id}
                   asset={a}
-                  folderLabel={a.folderId ? (folderNameById.get(a.folderId) ?? '—') : '(Root)'}
+                  folderLabel={a.folderId ? folderNameById.get(a.folderId) ?? '—' : '(Root)'}
                   exerciseStatus={a.type === 'exercise' ? exerciseStatusByAssetId[a.id] : undefined}
                   onOpen={() => void openAsset(a)}
                   onDownload={() => void downloadAsset(a)}
@@ -399,44 +282,6 @@ export function TopicPage() {
           } finally {
             setUploadFile(null);
           }
-        }}
-      />
-
-      <UpsertFolderModal
-        open={createOpen}
-        mode="create"
-        folders={folders}
-        onClose={() => setCreateOpen(false)}
-        onSave={async (input) => {
-          await createFolder({
-            topicId,
-            name: input.name,
-            iconEmoji: input.iconEmoji,
-            parentFolderId: input.parentFolderId,
-          });
-        }}
-      />
-
-      <UpsertFolderModal
-        open={editOpen}
-        mode="edit"
-        folders={folders}
-        initial={
-          editing
-            ? {
-                name: editing.name,
-                iconEmoji: editing.iconEmoji,
-                parentFolderId: editing.parentFolderId,
-              }
-            : undefined
-        }
-        onClose={() => setEditOpen(false)}
-        onSave={async (input) => {
-          if (!editing) return;
-          await renameFolder(editing.id, topicId, {
-            name: input.name,
-            iconEmoji: input.iconEmoji,
-          });
         }}
       />
     </div>

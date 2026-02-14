@@ -51,25 +51,23 @@ export function SubjectPage() {
 
   return (
     <div className="space-y-4 pb-40">
-      <div className="px-40">
-        <PageHeader
-          breadcrumb={<AutoBreadcrumbs />}
-          title={
-            subject ? `${subject.iconEmoji ? subject.iconEmoji + ' ' : ''}${subject.name}` : 'Fach'
-          }
-          actions={
-            <button
-              type="button"
-              onClick={() => {
-                setCreateOpen(true);
-              }}
-              className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400"
-            >
-              Thema anlegen
-            </button>
-          }
-        />
-      </div>
+      <PageHeader
+        breadcrumb={<AutoBreadcrumbs />}
+        title={
+          subject ? `${subject.iconEmoji ? subject.iconEmoji + ' ' : ''}${subject.name}` : 'Fach'
+        }
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              setCreateOpen(true);
+            }}
+            className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400"
+          >
+            Thema anlegen
+          </button>
+        }
+      />
 
       {subjectsLoading || topicsLoading ? (
         <div className="mt-3 text-sm text-slate-400">Lade…</div>
@@ -87,7 +85,7 @@ export function SubjectPage() {
             </div>
           ) : (
             <div className="w-full h-full flex">
-              <div className="pt-12 w-full px-40">
+              <div className="pt-12 w-full">
                 <ul className="grid grid-cols-4 gap-3">
                   {topics.map((t) => (
                     <TopicItem

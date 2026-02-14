@@ -11,7 +11,7 @@ export function AppShell() {
     <div className="min-h-screen">
       <NavBar />
 
-      <main className="mx-auto pt-8 pb-6">
+      <main className="mx-auto pb-6 max-w-4xl">
         <Outlet />
       </main>
     </div>

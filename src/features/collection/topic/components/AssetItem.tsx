@@ -1,33 +1,31 @@
-import { Download, ExternalLink, Trash2 } from 'lucide-react'
-import type { Asset, ExercisePageStatus } from '../../../../domain/models'
-import { assetTypeLabel } from '../utils/assetTypeLabel'
+import { Download, ExternalLink, Trash2 } from 'lucide-react';
+import type { Asset, ExercisePageStatus } from '../../../../domain/models';
+import { assetTypeLabel } from '../utils/assetTypeLabel';
 
 export function AssetItem(props: {
-  asset: Asset
-  folderLabel: string
-  exerciseStatus?: ExercisePageStatus
-  onOpen: () => void
-  onDownload: () => void
-  onDelete: () => void
+  asset: Asset;
+  folderLabel: string;
+  exerciseStatus?: ExercisePageStatus;
+  onOpen: () => void;
+  onDownload: () => void;
+  onDelete: () => void;
 }) {
-  const { asset: a } = props
+  const { asset: a } = props;
 
   return (
-    <li className="flex items-start justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2">
+    <li className="flex items-start justify-between gap-3 px-3 py-2">
       <div className="min-w-0">
-        <div className="truncate text-sm font-semibold text-slate-50">
-          {a.title}
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-          <span className="rounded bg-slate-900 px-2 py-0.5">
+        <div className="truncate text-sm font-semibold text-black dark:text-white">{a.title}</div>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/70">
+          <span className="rounded-full bg-black/5 dark:bg-white/3 px-2 py-0.5">
             {assetTypeLabel(a.type)}
           </span>
           {a.type === 'exercise' ? (
-            <span className="rounded bg-slate-900 px-2 py-0.5">
+            <span className="rounded-full bg-black/5 dark:bg-white/3 px-2 py-0.5">
               Status: {props.exerciseStatus ?? 'unknown'}
             </span>
           ) : null}
-          <span className="rounded bg-slate-900 px-2 py-0.5">
+          <span className="rounded-full bg-black/5 dark:bg-white/3 px-2 py-0.5">
             Folder: {props.folderLabel}
           </span>
         </div>
@@ -63,6 +61,5 @@ export function AssetItem(props: {
         </button>
       </div>
     </li>
-  )
+  );
 }
-
