@@ -18,7 +18,14 @@ import type {
 
 export class LocalSubjectRepository implements SubjectRepository {
   async list(): Promise<Subject[]> {
-    return db.subjects.orderBy('name').toArray();
+    try {
+      return await db.subjects.orderBy('name').toArray();
+    } catch {
+      const rows = await db.subjects.toArray();
+      return rows
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    }
   }
 
   async get(id: string): Promise<Subject | undefined> {

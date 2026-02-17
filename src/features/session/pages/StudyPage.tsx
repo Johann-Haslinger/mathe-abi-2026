@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { IoChevronBack } from 'react-icons/io5';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FullscreenViewerFrame } from '../../../components/FullscreenViewerFrame';
 import { Modal } from '../../../components/Modal';
@@ -131,6 +132,11 @@ export function StudyPage() {
 
   return (
     <FullscreenViewerFrame
+      overlayLeft={
+        <ViewerIconButton ariaLabel="Zurück" onClick={goToAssetTopic}>
+          <IoChevronBack />
+        </ViewerIconButton>
+      }
       overlayInfo={
         infoOpen && guardState.kind === 'ok' ? (
           <div className="w-[min(420px,calc(100vw-24px))] rounded-2xl border border-white/10 bg-slate-950/85 p-4 text-slate-100 shadow-2xl backdrop-blur">

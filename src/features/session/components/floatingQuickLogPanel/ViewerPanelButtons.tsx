@@ -6,7 +6,7 @@ export const PrimaryViewerPanelButton = (props: {
   return (
     <button
       type="button"
-      className="rounded-full bg-black dark:bg-white px-2 py-2 text-sm font-semibold text-white dark:text-black"
+      className="rounded-full bg-black dark:bg-white px-4 py-2 text-sm font-semibold text-white dark:text-black"
       onClick={props.onClick}
     >
       {props.icon && <div>{props.icon}</div>}
@@ -23,7 +23,7 @@ export const SecondaryViewerPanelButton = (props: {
   return (
     <button
       type="button"
-      className="rounded-full bg-white/10 px-2 py-2 text-sm font-semibold text-white/80 hover:bg-white/15 hover:text-white"
+      className="rounded-full bg-white/10 px-2 py-2 text-sm font-medium text-white/80 hover:bg-white/15 hover:text-white"
       onClick={props.onClick}
     >
       {props.icon && <div> {props.icon}</div>}

@@ -25,7 +25,7 @@ export function NavBar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
-      <div className="mx-auto grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 xl:px-8 py-4">
+      <div className="mx-auto grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 md:px-8 py-4">
         <div className="justify-self-start flex font-bold items-center pt-2 gap-3 text-xl">
           Spina
         </div>

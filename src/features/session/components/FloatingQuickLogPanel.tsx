@@ -1,13 +1,15 @@
-import { AnimatePresence, motion, useDragControls } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { AnimatePresence, motion, useDragControls, useMotionValue } from 'framer-motion';
+import { useEffect, useMemo } from 'react';
 import { useActiveSessionStore } from '../../../stores/activeSessionStore';
+import { useFloatingQuickLogPanelStore } from '../stores/floatingQuickLogPanelStore';
 import { useStudyStore } from '../stores/studyStore';
 import { NextView } from './floatingQuickLogPanel/NextView';
+import { ProgressDetailsView } from './floatingQuickLogPanel/ProgressDetailsView';
 import { ProgressView } from './floatingQuickLogPanel/ProgressView.tsx';
 import { ReviewView } from './floatingQuickLogPanel/ReviewView';
 import { StartView } from './floatingQuickLogPanel/StartView.tsx';
 
-type PanelView = 'start' | 'progress' | 'review' | 'next';
+type PanelView = 'start' | 'progress' | 'progressDetails' | 'review' | 'next';
 
 export function FloatingQuickLogPanel(props: {
   assetId: string;
@@ -16,7 +18,11 @@ export function FloatingQuickLogPanel(props: {
   topicId: string;
   onOpenExerciseReview: () => void;
 }) {
-  const [view, setView] = useState<PanelView>('start');
+  const view = useFloatingQuickLogPanelStore((s) => s.view) as PanelView;
+  const setView = useFloatingQuickLogPanelStore((s) => s.setView) as (v: PanelView) => void;
+  const storedX = useFloatingQuickLogPanelStore((s) => s.x);
+  const storedY = useFloatingQuickLogPanelStore((s) => s.y);
+  const setPosition = useFloatingQuickLogPanelStore((s) => s.setPosition);
 
   const active = useActiveSessionStore((s) => s.active);
   const {
@@ -28,19 +34,42 @@ export function FloatingQuickLogPanel(props: {
     cancelAttempt,
     logAttempt,
     setExerciseStatus,
+    currentAttempt,
   } = useStudyStore();
 
   const dragControls = useDragControls();
+  const x = useMotionValue(storedX);
+  const y = useMotionValue(storedY);
 
   const viewHeightPx: Record<PanelView, number> = useMemo(
     () => ({
       start: 280,
-      progress: 180,
+      progress: 64,
+      progressDetails: 240,
       review: 340,
       next: 180,
     }),
     [],
   );
+
+  const viewWidthPx: Record<PanelView, number> = useMemo(
+    () => ({
+      start: 256,
+      progress: 154,
+      progressDetails: 256,
+      review: 256,
+      next: 256,
+    }),
+    [],
+  );
+
+  useEffect(() => {
+    if (!currentAttempt) {
+      if (view === 'progress' || view === 'progressDetails' || view === 'review') {
+        setView('start');
+      }
+    }
+  }, [currentAttempt, setView, view]);
 
   const gripProps = useMemo(
     () => ({
@@ -55,31 +84,37 @@ export function FloatingQuickLogPanel(props: {
   return (
     <div className="fixed inset-0 z-9999 pointer-events-none">
       <motion.div
-        className="absolute bottom-4 right-4 pointer-events-auto w-[min(380px,calc(100vw-16px))] touch-none"
+        className="absolute bottom-4 right-4 pointer-events-auto touch-none"
         drag
         dragControls={dragControls}
         dragListener={false}
         dragConstraints={{ top: 8, left: 8, right: 8, bottom: 8 }}
         dragElastic={0}
         dragMomentum={false}
+        style={{ x, y, width: viewWidthPx[view] }}
+        animate={{ width: viewWidthPx[view] }}
+        transition={{ type: 'spring', stiffness: 520, damping: 44 }}
+        onDragEnd={() => setPosition({ x: x.get(), y: y.get() })}
       >
         <motion.div
-          layout
-          animate={{ height: viewHeightPx[view] }}
+          animate={{
+            height: viewHeightPx[view],
+          }}
           transition={{ type: 'spring', stiffness: 520, damping: 44 }}
           style={{ height: viewHeightPx[view] }}
-          className="rounded-3xl border bg-[#344763]/70 backdrop-blur p-4 pt-5 shadow-lg dark:border-white/5"
+          className="relative w-full overflow-hidden rounded-4xl border bg-[#243957]/70 backdrop-blur shadow-lg dark:border-white/5"
         >
-          <div className="h-full overflow-hidden">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={view}
-                className="h-full"
-                initial={{ y: 16, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -16, opacity: 0 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-              >
+          <AnimatePresence mode="sync" initial={false}>
+            <motion.div
+              key={view}
+              className="absolute inset-0"
+              initial={{ opacity: 0, scale: 0.985 }}
+              animate={{ opacity: 1, scale: 1, padding: view === 'progress' ? 12 : 24 }}
+              exit={{ opacity: 0, scale: 0.985 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              style={{ willChange: 'opacity, transform' }}
+            >
+              <div className="h-full">
                 {view === 'start' ? (
                   <StartView
                     assetId={props.assetId}
@@ -94,6 +129,15 @@ export function FloatingQuickLogPanel(props: {
                 {view === 'progress' ? (
                   <ProgressView
                     gripProps={gripProps}
+                    onOpenDetails={() => setView('progressDetails')}
+                    onFinish={() => setView('review')}
+                  />
+                ) : null}
+
+                {view === 'progressDetails' ? (
+                  <ProgressDetailsView
+                    gripProps={gripProps}
+                    onClose={() => setView('progress')}
                     onFinish={() => setView('review')}
                     onCancel={() => {
                       cancelAttempt();
@@ -151,9 +195,9 @@ export function FloatingQuickLogPanel(props: {
                     }}
                   />
                 ) : null}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       </motion.div>
     </div>

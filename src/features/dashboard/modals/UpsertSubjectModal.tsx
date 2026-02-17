@@ -29,6 +29,8 @@ export function UpsertSubjectModal(props: {
   const [iconEmoji, setIconEmoji] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const accentColor = useSubjectAccentColor(props.subject);
 
   useEffect(() => {
@@ -36,12 +38,15 @@ export function UpsertSubjectModal(props: {
     setName(props.initial?.name ?? '');
     setColor(props.initial?.color ?? defaultColor);
     setIconEmoji(props.initial?.iconEmoji ?? '');
+    setSubmitError(null);
+    setDeleteError(null);
   }, [props.open, props.initial, defaultColor]);
 
   async function submit() {
     const trimmed = name.trim();
     if (!trimmed) return;
     setSaving(true);
+    setSubmitError(null);
     try {
       await props.onSave({
         name: trimmed,
@@ -49,6 +54,8 @@ export function UpsertSubjectModal(props: {
         iconEmoji: iconEmoji.trim() || undefined,
       });
       props.onClose();
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : 'Fehler beim Speichern');
     } finally {
       setSaving(false);
     }
@@ -63,9 +70,12 @@ export function UpsertSubjectModal(props: {
       return;
 
     setDeleting(true);
+    setDeleteError(null);
     try {
       await props.onDelete();
       props.onClose();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Fehler beim Löschen');
     } finally {
       setDeleting(false);
     }
@@ -113,6 +123,16 @@ export function UpsertSubjectModal(props: {
       }
     >
       <div className="space-y-4">
+        {submitError ? (
+          <div className="rounded-md border border-rose-900/60 bg-rose-950/30 px-3 py-2 text-sm text-rose-200">
+            {submitError}
+          </div>
+        ) : null}
+        {deleteError ? (
+          <div className="rounded-md border border-rose-900/60 bg-rose-950/30 px-3 py-2 text-sm text-rose-200">
+            {deleteError}
+          </div>
+        ) : null}
         <label className="block">
           <div className="text-xs font-semibold text-slate-300">Icon (Emoji)</div>
           <input

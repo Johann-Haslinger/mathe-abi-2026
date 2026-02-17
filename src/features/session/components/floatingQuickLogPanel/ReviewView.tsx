@@ -1,8 +1,9 @@
-import { Check, X } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { AttemptResult } from '../../../../domain/models';
 import { useStudyStore } from '../../stores/studyStore';
 import { PanelViewHeader, type DragGripProps } from './PanelViewHeader';
+import { HighlightText, MutedText, PanelHeading } from './TextHighlight';
 
 export function ReviewView(props: {
   gripProps: DragGripProps;
@@ -19,48 +20,44 @@ export function ReviewView(props: {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const { attemptStartedAtMs } = useStudyStore();
+  const currentAttempt = useStudyStore((s) => s.currentAttempt);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!attemptStartedAtMs) return;
+    if (!currentAttempt) return;
     const t = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(t);
-  }, [attemptStartedAtMs]);
+  }, [currentAttempt]);
 
   const seconds = useMemo(() => {
-    if (!attemptStartedAtMs) return 0;
-    return Math.max(0, Math.floor((nowMs - attemptStartedAtMs) / 1000));
-  }, [nowMs, attemptStartedAtMs]);
+    if (!currentAttempt) return 0;
+    return Math.max(0, Math.floor((nowMs - currentAttempt.startedAtMs) / 1000));
+  }, [nowMs, currentAttempt]);
 
   const showError = useMemo(() => result !== 'correct', [result]);
 
   return (
     <div className="space-y-3">
       <PanelViewHeader
+        left={
+          <PanelHeading>
+            <MutedText>Wie lief </MutedText>
+            <br />
+            <HighlightText>die Aufgabe?</HighlightText>
+          </PanelHeading>
+        }
         right={
           <div className="flex items-center gap-1">
             <div className="text-right text-xs font-semibold">
-              <span className="text-white/80">Review</span>
               <span className="ml-2 text-white/60">
                 Zeit: <span className="tabular-nums">{formatDuration(seconds)}</span>
               </span>
             </div>
-            <button
-              type="button"
-              onClick={props.onClose}
-              className="rounded-md p-2 text-slate-300 hover:bg-slate-900 hover:text-slate-50"
-              aria-label="Schließen"
-              title="Schließen"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
         }
-        gripProps={props.gripProps}
       />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex px-2 mt-6 justify-between w-full gap-2">
         <ResultChip active={result === 'correct'} label="✅" onClick={() => setResult('correct')} />
         <ResultChip active={result === 'partial'} label="🟨" onClick={() => setResult('partial')} />
         <ResultChip active={result === 'wrong'} label="❌" onClick={() => setResult('wrong')} />
@@ -137,11 +134,9 @@ function ResultChip(props: { active: boolean; label: string; onClick: () => void
     <button
       type="button"
       onClick={props.onClick}
-      className={
-        props.active
-          ? 'rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-50'
-          : 'rounded-md bg-slate-950/60 px-3 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-slate-50'
-      }
+      className={`rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-lg font-semibold text-slate-50 ${
+        props.active ? 'border-white/60' : ''
+      }`}
     >
       {props.label}
     </button>

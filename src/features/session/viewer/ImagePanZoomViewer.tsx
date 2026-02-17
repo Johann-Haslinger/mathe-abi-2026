@@ -42,7 +42,10 @@ export function ImagePanZoomViewer(props: { src: string; alt: string; accentColo
 
   const setPanToKeepContentPointFixed = useCallback(
     (content: Point, containerPt: Point, nextScale: number) => {
-      setPan({ x: containerPt.x - nextScale * content.x, y: containerPt.y - nextScale * content.y });
+      setPan({
+        x: containerPt.x - nextScale * content.x,
+        y: containerPt.y - nextScale * content.y,
+      });
     },
     [],
   );
@@ -166,21 +169,24 @@ export function ImagePanZoomViewer(props: { src: string; alt: string; accentColo
     [containerPoint, setPanToKeepContentPointFixed],
   );
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    pointersRef.current.delete(e.pointerId);
-    if (pointersRef.current.size === 0) {
-      setIsInteracting(false);
-      gestureRef.current = null;
-    } else if (pointersRef.current.size === 1) {
-      const p = Array.from(pointersRef.current.values())[0];
-      gestureRef.current = { kind: 'pan', startPan: pan, startPointer: p };
-    }
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      // noop
-    }
-  }, [pan]);
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      pointersRef.current.delete(e.pointerId);
+      if (pointersRef.current.size === 0) {
+        setIsInteracting(false);
+        gestureRef.current = null;
+      } else if (pointersRef.current.size === 1) {
+        const p = Array.from(pointersRef.current.values())[0];
+        gestureRef.current = { kind: 'pan', startPan: pan, startPointer: p };
+      }
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        // noop
+      }
+    },
+    [pan],
+  );
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
     pointersRef.current.delete(e.pointerId);
