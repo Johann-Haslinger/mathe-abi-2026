@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AttemptResult, ExercisePageStatus } from '../../../domain/models';
+import { newId } from '../../../lib/id';
 import {
   attemptRepo,
   exerciseRepo,
@@ -14,6 +15,7 @@ function getSessionKey(input: { subjectId: string; topicId: string; startedAtMs:
 }
 
 type CurrentAttempt = {
+  attemptId: string;
   startedAtMs: number;
   assetId?: string;
   problemIdx: number;
@@ -40,7 +42,11 @@ type StudyState = {
   setProblemIdx: (idx: number) => void;
   setSubproblemLabel: (label: string) => void;
 
-  startAttempt: (input?: { assetId?: string; problemIdx?: number; subproblemLabel?: string }) => void;
+  startAttempt: (input?: {
+    assetId?: string;
+    problemIdx?: number;
+    subproblemLabel?: string;
+  }) => void;
   cancelAttempt: () => void;
 
   loadExerciseStatus: (assetId: string) => Promise<void>;
@@ -122,6 +128,7 @@ export const useStudyStore = create<StudyState>()(
         const snapshotSubproblemLabel = input?.subproblemLabel ?? get().subproblemLabel;
         set({
           currentAttempt: {
+            attemptId: newId(),
             startedAtMs,
             assetId: input?.assetId,
             problemIdx: snapshotProblemIdx,
@@ -177,6 +184,7 @@ export const useStudyStore = create<StudyState>()(
         });
 
         await attemptRepo.create({
+          id: currentAttempt.attemptId,
           studySessionId,
           subproblemId: subproblem.id,
           startedAtMs,
@@ -208,7 +216,7 @@ export const useStudyStore = create<StudyState>()(
     }),
     {
       name: 'mathe-abi-2026:study-store',
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
         // v1 stored `attemptStartedAtMs`; v2 uses `currentAttempt`.
         if (version === 1 && persisted && typeof persisted === 'object') {
@@ -219,9 +227,23 @@ export const useStudyStore = create<StudyState>()(
             return {
               ...(persisted as PersistedStudyState),
               currentAttempt: {
+                attemptId: newId(),
                 startedAtMs: p.attemptStartedAtMs,
                 problemIdx: p.problemIdx ?? 1,
                 subproblemLabel: p.subproblemLabel ?? 'a',
+              },
+            };
+          }
+        }
+        // v3 adds `attemptId` to `currentAttempt`.
+        if (version === 2 && persisted && typeof persisted === 'object') {
+          const p = persisted as PersistedStudyState;
+          if (p.currentAttempt && !('attemptId' in p.currentAttempt)) {
+            return {
+              ...(persisted as PersistedStudyState),
+              currentAttempt: {
+                ...(p.currentAttempt as Omit<CurrentAttempt, 'attemptId'>),
+                attemptId: newId(),
               },
             };
           }

@@ -110,7 +110,7 @@ export function FloatingQuickLogPanel(props: {
               key={view}
               className="absolute inset-0"
               initial={{ opacity: 0, scale: 0.985 }}
-              animate={{ opacity: 1, scale: 1, padding: view === 'progress' ? 12 : 24 }}
+              animate={{ opacity: 1, scale: 1, padding: view === 'progress' ? 12 : 20 }}
               exit={{ opacity: 0, scale: 0.985 }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
               style={{ willChange: 'opacity, transform' }}

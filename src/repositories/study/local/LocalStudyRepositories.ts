@@ -101,6 +101,7 @@ export class LocalSubproblemRepository implements SubproblemRepository {
 
 export class LocalAttemptRepository implements AttemptRepository {
   async create(input: {
+    id: string;
     studySessionId: string;
     subproblemId: string;
     startedAtMs: number;
@@ -111,7 +112,7 @@ export class LocalAttemptRepository implements AttemptRepository {
     errorType?: string;
   }): Promise<Attempt> {
     const row: Attempt = {
-      id: newId(),
+      id: input.id ?? newId(),
       studySessionId: input.studySessionId,
       subproblemId: input.subproblemId,
       startedAtMs: input.startedAtMs,

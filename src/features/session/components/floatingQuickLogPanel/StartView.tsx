@@ -24,52 +24,54 @@ export function StartView(props: {
     useStudyStore();
 
   return (
-    <>
-      <PanelViewHeader
-        left={
-          <PanelHeading>
-            <MutedText>Diese Aufgabe </MutedText>
-            <HighlightText>Starten?</HighlightText>
-          </PanelHeading>
-        }
-        right={
-          <GhostButton
-            onClick={() => {}}
-            icon={<IoInformationCircleOutline className="text-2xl" />}
+    <div className="flex flex-col h-full">
+      <div>
+        <PanelViewHeader
+          left={
+            <PanelHeading>
+              <MutedText>Diese Aufgabe </MutedText>
+              <HighlightText>Starten?</HighlightText>
+            </PanelHeading>
+          }
+          right={
+            <GhostButton
+              onClick={() => {}}
+              icon={<IoInformationCircleOutline className="text-2xl" />}
+            />
+          }
+        />
+
+        <div className="mt-3 space-y-1">
+          <Row
+            label="Aufgabe"
+            right={
+              <Stepper
+                key={`problem:${problemIdx}`}
+                value={String(problemIdx)}
+                kind="number"
+                min={1}
+                max={999}
+                onChange={(next) => setProblemIdx(Number.parseInt(next, 10))}
+              />
+            }
           />
-        }
-      />
 
-      <div className="mt-3">
-        <Row
-          label="Aufgabe"
-          right={
-            <Stepper
-              key={`problem:${problemIdx}`}
-              value={String(problemIdx)}
-              kind="number"
-              min={1}
-              max={999}
-              onChange={(next) => setProblemIdx(Number.parseInt(next, 10))}
-            />
-          }
-        />
-
-        <Row
-          label="Teilaufgabe"
-          right={
-            <Stepper
-              key={`subproblem:${subproblemLabel}`}
-              value={subproblemLabel}
-              kind="free"
-              emptyValue="a"
-              onChange={(next) => setSubproblemLabel(next)}
-            />
-          }
-        />
+          <Row
+            label="Teilaufgabe"
+            right={
+              <Stepper
+                key={`subproblem:${subproblemLabel}`}
+                value={subproblemLabel}
+                kind="free"
+                emptyValue="a"
+                onChange={(next) => setSubproblemLabel(next)}
+              />
+            }
+          />
+        </div>
       </div>
 
-      <div className="mt-8 flex items-center justify-end gap-2">
+      <div className="mt-auto flex items-center justify-end gap-2">
         <PrimaryButton
           onClick={() => {
             startAttempt({ assetId: props.assetId });
@@ -79,7 +81,7 @@ export function StartView(props: {
           Starten
         </PrimaryButton>
       </div>
-    </>
+    </div>
   );
 }
 

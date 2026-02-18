@@ -12,6 +12,7 @@ import {
   LocalStudySessionRepository,
   LocalSubproblemRepository,
 } from './study/local/LocalStudyRepositories';
+import { LocalInkRepository } from './study/local/LocalInkRepository';
 
 export const subjectRepo = new LocalSubjectRepository();
 export const topicRepo = new LocalTopicRepository();
@@ -24,3 +25,4 @@ export const exerciseRepo = new LocalExerciseRepository();
 export const problemRepo = new LocalProblemRepository();
 export const subproblemRepo = new LocalSubproblemRepository();
 export const attemptRepo = new LocalAttemptRepository();
+export const inkRepo = new LocalInkRepository();

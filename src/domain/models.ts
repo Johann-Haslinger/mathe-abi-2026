@@ -99,3 +99,29 @@ export type Attempt = {
   note?: string;
   errorType?: string;
 };
+
+export type InkTool = 'pencil' | 'pen' | 'marker';
+
+export type InkBBox = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+};
+
+export type InkPoint = [number, number, number, number];
+
+export type InkStroke = {
+  id: Id;
+  studySessionId: Id;
+  assetId: Id;
+  attemptId: Id;
+  createdAtMs: number;
+  updatedAtMs: number;
+  tool: InkTool;
+  color: string;
+  opacity: number;
+  baseSize: number;
+  points: InkPoint[];
+  bbox: InkBBox;
+};

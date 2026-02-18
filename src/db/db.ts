@@ -5,6 +5,7 @@ import type {
   Attempt,
   Exercise,
   Folder,
+  InkStroke,
   Problem,
   StudySession,
   Subject,
@@ -25,6 +26,7 @@ export class AbiDb extends Dexie {
   problems!: Table<Problem, string>;
   subproblems!: Table<Subproblem, string>;
   attempts!: Table<Attempt, string>;
+  inkStrokes!: Table<InkStroke, string>;
 
   constructor() {
     super('abi-lernapp');
@@ -149,6 +151,23 @@ export class AbiDb extends Dexie {
             }
           });
       });
+
+    this.version(8).stores({
+      subjects: 'id, name',
+      topics: 'id, subjectId, orderIndex',
+      folders: 'id, topicId, parentFolderId, orderIndex',
+      assets: 'id, subjectId, topicId, folderId, type, createdAtMs',
+      assetFiles: 'assetId',
+
+      studySessions: 'id, subjectId, topicId, startedAtMs, endedAtMs',
+      exercises: 'id, assetId, status',
+      problems: 'id, [exerciseId+idx], exerciseId, idx',
+      subproblems: 'id, [problemId+label], problemId, label',
+      attempts: 'id, studySessionId, subproblemId, startedAtMs, endedAtMs, result',
+
+      inkStrokes:
+        'id, [studySessionId+assetId], studySessionId, assetId, attemptId, createdAtMs, updatedAtMs',
+    });
   }
 }
 

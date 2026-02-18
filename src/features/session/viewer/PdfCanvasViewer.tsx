@@ -1,5 +1,8 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { drawDottedGrid } from '../../../ink/grid.ts';
+import { InkOverlay } from '../../../ink/InkOverlay';
+import { InkToolbar } from '../components/ink/InkToolbar';
 import { pdfjs } from './pdfjs';
 import { clamp, hexToRgba, INITIAL_TOP_MARGIN } from './viewerUtils';
 
@@ -8,6 +11,7 @@ type PdfCanvasViewerProps = {
   pageNumber: number;
   onPageNumberChange: (next: number) => void;
   accentColor?: string;
+  ink?: { studySessionId: string; assetId: string; activeAttemptId: string | null } | null;
 };
 
 type Point = { x: number; y: number };
@@ -50,9 +54,10 @@ export function PdfCanvasViewer(props: PdfCanvasViewerProps) {
   const showLoadingOverlay = docLoading || !layoutReady || !hasRenderedOnce;
 
   const ratio = viewScale / RENDER_SCALE;
-  const gridSizePx = Math.max(10, Math.round(40 * ratio));
   const gridDotColor = hexToRgba(props.accentColor, 0.32) ?? 'rgba(0,0,0,0.18)';
-  const dotRadiusPx = clamp(1.5 * ratio, 0.6, 6);
+  const gridCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [gridSize, setGridSize] = useState({ w: 0, h: 0 });
+  const gridRafRef = useRef<number | null>(null);
 
   const viewScaleRef = useRef(viewScale);
   const panRef = useRef(pan);
@@ -72,6 +77,61 @@ export function PdfCanvasViewer(props: PdfCanvasViewerProps) {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const r = el.getBoundingClientRect();
+      setGridSize({ w: Math.max(1, Math.floor(r.width)), h: Math.max(1, Math.floor(r.height)) });
+    });
+    ro.observe(el);
+    const r = el.getBoundingClientRect();
+    setGridSize({ w: Math.max(1, Math.floor(r.width)), h: Math.max(1, Math.floor(r.height)) });
+    return () => ro.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    const c = gridCanvasRef.current;
+    if (!c) return;
+    const dpr = window.devicePixelRatio || 1;
+    c.width = Math.floor(gridSize.w * dpr);
+    c.height = Math.floor(gridSize.h * dpr);
+    c.style.width = `${gridSize.w}px`;
+    c.style.height = `${gridSize.h}px`;
+  }, [gridSize.w, gridSize.h]);
+
+  useEffect(() => {
+    const c = gridCanvasRef.current;
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    if (!ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+
+    if (gridRafRef.current !== null) cancelAnimationFrame(gridRafRef.current);
+    gridRafRef.current = requestAnimationFrame(() => {
+      gridRafRef.current = null;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, c.width, c.height);
+      const sx = dpr * ratio;
+      ctx.setTransform(sx, 0, 0, sx, dpr * pan.x, dpr * pan.y);
+      drawDottedGrid(
+        ctx,
+        {
+          panX: pan.x,
+          panY: pan.y,
+          scale: ratio,
+          widthCss: gridSize.w,
+          heightCss: gridSize.h,
+        },
+        { color: gridDotColor },
+      );
+    });
+
+    return () => {
+      if (gridRafRef.current !== null) cancelAnimationFrame(gridRafRef.current);
+    };
+  }, [pan.x, pan.y, ratio, gridSize.w, gridSize.h, gridDotColor]);
 
   const flush = useCallback(() => {
     rafRef.current = null;
@@ -373,9 +433,6 @@ export function PdfCanvasViewer(props: PdfCanvasViewerProps) {
           touchAction: 'none',
           userSelect: 'none',
           cursor: isInteracting ? 'grabbing' : 'grab',
-          backgroundImage: `radial-gradient(circle at 50% 50%, ${gridDotColor} ${dotRadiusPx}px, transparent 0)`,
-          backgroundSize: `${gridSizePx}px ${gridSizePx}px`,
-          backgroundPosition: `${Math.round(pan.x)}px ${Math.round(pan.y)}px`,
         }}
         onWheel={handleWheel}
         onPointerDown={handlePointerDown}
@@ -383,6 +440,12 @@ export function PdfCanvasViewer(props: PdfCanvasViewerProps) {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
       >
+        <canvas
+          ref={gridCanvasRef}
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
+        />
+
         {layoutReady ? (
           <div
             className="absolute left-0 top-0"
@@ -414,6 +477,19 @@ export function PdfCanvasViewer(props: PdfCanvasViewerProps) {
               ))}
             </div>
           </div>
+        ) : null}
+
+        {props.ink ? (
+          <>
+            <InkOverlay
+              studySessionId={props.ink.studySessionId}
+              assetId={props.ink.assetId}
+              activeAttemptId={props.ink.activeAttemptId}
+              pan={pan}
+              ratio={ratio}
+            />
+            <InkToolbar activeAttemptId={props.ink.activeAttemptId} />
+          </>
         ) : null}
 
         {showLoadingOverlay ? (

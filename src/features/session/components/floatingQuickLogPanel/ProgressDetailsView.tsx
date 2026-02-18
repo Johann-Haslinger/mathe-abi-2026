@@ -21,12 +21,12 @@ export function ProgressDetailsView(props: {
       <div className="flex flex-col mt-3 items-center">
         <span className="tabular-nums text-4xl font-medium">{formatDuration(pastSeconds)}</span>
         <span className="text-base mt-2 opacity-70">
-          Aufgabe {currentAttempt?.problemIdx} {currentAttempt?.subproblemLabel})
+          Aufgabe {currentAttempt?.problemIdx} {currentAttempt?.subproblemLabel}
         </span>
       </div>
 
       <div className="mt-auto pt-4 flex justify-end gap-2">
-        <SecondaryButton onClick={props.onCancel}>Cancel</SecondaryButton>
+        <SecondaryButton onClick={props.onCancel}>Abbrechen</SecondaryButton>
         <PrimaryButton icon={<IoCheckmark />} onClick={props.onFinish} />
       </div>
     </div>

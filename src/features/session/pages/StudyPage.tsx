@@ -14,6 +14,7 @@ import { NotFoundPage } from '../../common/NotFoundPage';
 import { FloatingQuickLogPanel } from '../components/FloatingQuickLogPanel';
 import { ExerciseReviewModal } from '../modals/ExerciseReviewModal';
 import type { SessionSummaryState } from '../modals/SessionSummaryModal';
+import { ActiveSessionWidget } from '../sessionWidget/ActiveSessionWidget';
 import { useStudyStore } from '../stores/studyStore';
 import { AssetViewer } from '../viewer/AssetViewer';
 import { formatExerciseStatus } from '../viewer/viewerUtils';
@@ -36,6 +37,7 @@ export function StudyPage() {
     exerciseStatusByAssetId,
     loadExerciseStatus,
     reset,
+    currentAttempt,
   } = useStudyStore();
 
   useEffect(() => {
@@ -159,6 +161,8 @@ export function StudyPage() {
         ) : null
       }
     >
+      {active ? <ActiveSessionWidget active={active} /> : null}
+
       {infoOpen ? (
         <button
           type="button"
@@ -241,6 +245,15 @@ export function StudyPage() {
               pageNumber={pageNumber}
               onPageNumberChange={setPageNumber}
               accentColor={subjectAccent}
+              ink={
+                studySessionId
+                  ? {
+                      studySessionId,
+                      assetId: guardState.asset.id,
+                      activeAttemptId: currentAttempt?.attemptId ?? null,
+                    }
+                  : null
+              }
             />
 
             <FloatingQuickLogPanel

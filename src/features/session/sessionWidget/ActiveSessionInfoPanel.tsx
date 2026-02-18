@@ -1,26 +1,23 @@
-import { Pause, Play, Plus } from 'lucide-react'
-import type { ActiveSession } from '../../../stores/activeSessionStore'
-import { useActiveSessionStore } from '../../../stores/activeSessionStore'
-import { formatDuration } from './utils'
+import { Pause, Play, Plus } from 'lucide-react';
+import type { ActiveSession } from '../../../stores/activeSessionStore';
+import { useActiveSessionStore } from '../../../stores/activeSessionStore';
+import { formatDuration } from './utils';
 
 export function ActiveSessionInfoPanel(props: {
-  open: boolean
-  active: ActiveSession
-  subjectName?: string
-  topicName?: string
-  elapsedSeconds: number
+  open: boolean;
+  active: ActiveSession;
+  subjectName?: string;
+  topicName?: string;
+  elapsedSeconds: number;
 }) {
-  const { togglePause, extendPlannedDurationMs, setPlannedDurationMs } = useActiveSessionStore()
+  const { togglePause, extendPlannedDurationMs, setPlannedDurationMs } = useActiveSessionStore();
 
   return (
     <div
       className={[
-        'rounded-xl border border-slate-800 bg-slate-950/90 shadow-xl backdrop-blur',
+        'rounded-xl border bg-[#243957]/70 backdrop-blur shadow-lg dark:border-white/5',
         'transition-all duration-200 ease-out',
-        props.open
-          ? 'mt-2 max-h-96 opacity-100'
-          : 'pointer-events-none mt-0 max-h-0 opacity-0',
-        'overflow-hidden',
+        props.open ? 'mt-2 max-h-96 opacity-100' : 'pointer-events-none mt-0 max-h-0 opacity-0',
       ].join(' ')}
     >
       <div className="px-3 py-3">
@@ -104,6 +101,5 @@ export function ActiveSessionInfoPanel(props: {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

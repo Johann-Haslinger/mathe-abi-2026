@@ -1,7 +1,7 @@
 import { GripVertical } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { IoStop } from 'react-icons/io5';
-import { matchPath, useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { studySessionRepo } from '../../../repositories';
 import { useActiveSessionStore, type ActiveSession } from '../../../stores/activeSessionStore';
 import { useSubjectsStore } from '../../../stores/subjectsStore';
@@ -15,7 +15,6 @@ import { formatDuration, getElapsedMs } from './utils';
 export function ActiveSessionWidget(props: { active: ActiveSession }) {
   const { active } = props;
   const navigate = useNavigate();
-  const location = useLocation();
   const { end } = useActiveSessionStore();
   const { studySessionId, reset } = useStudyStore();
   const subjectColor = useSubjectAccentColor(active.subjectId);
@@ -24,11 +23,6 @@ export function ActiveSessionWidget(props: { active: ActiveSession }) {
 
   const nowMs = useSessionClock(active);
   const { subjectName, topicName } = useSessionNames(active);
-
-  const isAssetOrStudyPage =
-    !!matchPath('/study/:assetId', location.pathname) ||
-    !!matchPath('/assets/:assetId', location.pathname) ||
-    !!matchPath('/subjects/:subjectId/topics/:topicId/:assetId', location.pathname);
 
   const { containerRef, pos, gripProps } = useDraggablePosition({
     width: 200,
@@ -67,19 +61,16 @@ export function ActiveSessionWidget(props: { active: ActiveSession }) {
   return (
     <div
       ref={containerRef}
-      className="fixed z-9000 w-[200px] max-w-[calc(100vw-32px)]"
-      style={{ left: pos.x, top: pos.y }}
+      className="fixed w-[200px] max-w-[calc(100vw-32px)]"
+      style={{ left: pos.x, top: pos.y, zIndex: 10000 }}
     >
-      <div
-        style={{ backgroundColor: isAssetOrStudyPage ? subjectColor : subjectColor + '4D' }}
-        className="w-full h-full dark:bg-white/5! rounded-full dark:border border-white/5"
-      >
+      <div className="w-full h-full overflow-hidden rounded-full border bg-[#243957]/70 backdrop-blur shadow-lg dark:border-white/5">
         <div className="flex items-stretch p-1.5">
           <button
             style={{ backgroundColor: subjectColor }}
             type="button"
             onClick={() => void stopSession()}
-            className="inline-flex cursor-pointer size-8 items-center justify-center rounded-full text-white/70 dark:bg-white/90! dark:text-black/60"
+            className="inline-flex cursor-pointer size-8 items-center justify-center rounded-full text-white dark:bg-white/5! dark:text-white/80"
             aria-label="Stop"
             title="Session beenden"
           >

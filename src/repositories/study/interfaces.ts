@@ -37,6 +37,7 @@ export interface SubproblemRepository {
 
 export interface AttemptRepository {
   create(input: {
+    id?: string;
     studySessionId: string;
     subproblemId: string;
     startedAtMs: number;

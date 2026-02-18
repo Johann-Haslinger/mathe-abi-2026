@@ -11,6 +11,7 @@ export function AssetViewer(props: {
   pageNumber: number;
   onPageNumberChange: (n: number) => void;
   accentColor?: string;
+  ink?: { studySessionId: string; assetId: string; activeAttemptId: string | null } | null;
 }) {
   const mime = props.file.mimeType || '';
   const isPdf =
@@ -42,6 +43,7 @@ export function AssetViewer(props: {
         pageNumber={props.pageNumber}
         onPageNumberChange={props.onPageNumberChange}
         accentColor={props.accentColor}
+        ink={props.ink ?? null}
       />
     );
   }
