@@ -13,7 +13,6 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 function useIsExerciseOpen() {
   const { pathname } = useLocation();
   return (
-    matchPath({ path: '/study/:assetId', end: false }, pathname) !== null ||
     matchPath({ path: '/assets/:assetId', end: false }, pathname) !== null ||
     matchPath({ path: '/subjects/:subjectId/topics/:topicId/:assetId', end: false }, pathname) !==
       null

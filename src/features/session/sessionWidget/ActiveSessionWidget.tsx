@@ -61,8 +61,8 @@ export function ActiveSessionWidget(props: { active: ActiveSession }) {
   return (
     <div
       ref={containerRef}
-      className="fixed w-[200px] max-w-[calc(100vw-32px)]"
-      style={{ left: pos.x, top: pos.y, zIndex: 10000 }}
+      className="fixed w-[200px] z-[1000000000] max-w-[calc(100vw-32px)]"
+      style={{ left: pos.x, top: pos.y }}
     >
       <div className="w-full h-full overflow-hidden rounded-full border bg-[#243957]/70 backdrop-blur shadow-lg dark:border-white/5">
         <div className="flex items-stretch p-1.5">
