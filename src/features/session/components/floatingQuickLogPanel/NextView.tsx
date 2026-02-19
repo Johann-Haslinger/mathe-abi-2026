@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '../../../../components/Button';
+import { GhostButton, PrimaryButton } from '../../../../components/Button';
 import { PanelViewHeader, type DragGripProps } from './PanelViewHeader';
 import { HighlightText, MutedText, PanelHeading } from './TextHighlight';
 
@@ -28,15 +28,15 @@ export function NextView(props: {
             {nextSubLabel}
           </PrimaryButton>
         ) : null}
-        <PrimaryButton className="w-full" onClick={props.onNewProblem}>
+        <GhostButton className="w-full" onClick={props.onNewProblem}>
           Nächste Aufgabe
-        </PrimaryButton>
-        <SecondaryButton className="w-full" onClick={props.onMarkProgress}>
+        </GhostButton>
+        <GhostButton className="w-full" onClick={props.onMarkProgress}>
           Zwischenstand
-        </SecondaryButton>
-        <SecondaryButton className="w-full" onClick={props.onFinishExercise}>
+        </GhostButton>
+        <GhostButton className="w-full" onClick={props.onFinishExercise}>
           Übung beenden
-        </SecondaryButton>
+        </GhostButton>
       </div>
     </div>
   );

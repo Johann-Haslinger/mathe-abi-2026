@@ -6,7 +6,6 @@ import { studySessionRepo } from '../../../repositories';
 import { useActiveSessionStore, type ActiveSession } from '../../../stores/activeSessionStore';
 import { useSubjectsStore } from '../../../stores/subjectsStore';
 import { useTopicsStore } from '../../../stores/topicsStore';
-import { useSubjectAccentColor } from '../../../ui/hooks/useSubjectColors';
 import { formatDurationClock } from '../../../utils/time';
 import type { SessionSummaryState } from '../modals/SessionReviewModal';
 import { useStudyStore } from '../stores/studyStore';
@@ -20,7 +19,6 @@ export function ActiveSessionWidget(props: { active: ActiveSession }) {
   const { end } = useActiveSessionStore();
   const { studySessionId, reset, currentAttempt, taskDepthByAssetId, loadTaskDepth } =
     useStudyStore();
-  const subjectColor = useSubjectAccentColor(active.subjectId);
 
   const [expanded, setExpanded] = useState(false);
 
@@ -81,10 +79,9 @@ export function ActiveSessionWidget(props: { active: ActiveSession }) {
       <div className="w-full h-full overflow-hidden rounded-full border bg-[#243957]/70 backdrop-blur shadow-lg dark:border-white/5">
         <div className="flex items-stretch p-1.5">
           <button
-            style={{ backgroundColor: subjectColor }}
             type="button"
             onClick={() => void stopSession()}
-            className="inline-flex cursor-pointer size-8 items-center justify-center rounded-full text-white dark:bg-white/5! dark:text-white/80"
+            className="inline-flex cursor-pointer size-8 items-center justify-center rounded-full text-white dark:text-white/80"
             aria-label="Stop"
             title="Session beenden"
           >

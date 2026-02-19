@@ -68,12 +68,16 @@ export const GhostButton = (props: {
   onClick: () => void;
   className?: string;
   icon?: React.ReactNode;
+  disabled?: boolean;
 }) => {
   return (
     <ButtonOutline
       icon={props.icon}
-      className={`${props.className} hover:bg-white/5 border-none`}
+      className={`${props.className} hover:bg-white/5 border-none ${
+        props.disabled ? 'opacity-40 cursor-not-allowed! hover:bg-white-20!' : ''
+      }`}
       onClick={props.onClick}
+      disabled={props.disabled}
     >
       {props.children}
     </ButtonOutline>

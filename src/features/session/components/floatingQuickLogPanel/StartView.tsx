@@ -1,7 +1,7 @@
 import { Minus, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { IoSettingsOutline } from 'react-icons/io5';
-import { PrimaryButton, SecondaryButton } from '../../../../components/Button';
+import { GhostButton, PrimaryButton } from '../../../../components/Button';
 import { useStudyStore } from '../../stores/studyStore';
 import { PanelViewHeader, type DragGripProps } from './PanelViewHeader';
 import { HighlightText, MutedText, PanelHeading } from './TextHighlight';
@@ -130,7 +130,7 @@ export function StartView(props: {
       </div>
 
       <div className="mt-auto flex items-center justify-between gap-2">
-        <SecondaryButton onClick={props.onOpenConfig} icon={<IoSettingsOutline />} />
+        <GhostButton onClick={props.onOpenConfig} icon={<IoSettingsOutline />} />
         <PrimaryButton
           onClick={() => {
             startAttempt({ assetId: props.assetId });
@@ -242,8 +242,8 @@ function Stepper(props: {
         inputMode={props.kind === 'number' ? 'numeric' : undefined}
         className="w-10 bg-transparent outline-none text-sm font-semibold text-white tabular-nums pr-2 text-right"
       />
-      <div className="flex gap-2 scale-80">
-        <SecondaryButton
+      <div className="flex gap-2 scale-80 relative -right-2">
+        <GhostButton
           disabled={decDisabled}
           onClick={() => {
             if (props.kind === 'number') {
@@ -268,7 +268,7 @@ function Stepper(props: {
           }}
           icon={<Minus className="size-4" />}
         />
-        <SecondaryButton
+        <GhostButton
           disabled={incDisabled}
           onClick={() => {
             if (props.kind === 'number') {

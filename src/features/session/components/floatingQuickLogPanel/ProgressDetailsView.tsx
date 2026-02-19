@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FiMinimize2 } from 'react-icons/fi';
 import { IoCheckmark } from 'react-icons/io5';
-import { GhostButton, PrimaryButton, SecondaryButton } from '../../../../components/Button';
+import { GhostButton, PrimaryButton } from '../../../../components/Button';
 import { formatDurationClock } from '../../../../utils/time';
 import { useStudyStore } from '../../stores/studyStore';
 import { formatTaskPath } from '../../utils/formatTaskPath';
@@ -38,7 +38,7 @@ export function ProgressDetailsView(props: {
       </div>
 
       <div className="mt-auto pt-4 flex justify-end gap-2">
-        <SecondaryButton onClick={props.onCancel}>Abbrechen</SecondaryButton>
+        <GhostButton onClick={props.onCancel}>Abbrechen</GhostButton>
         <PrimaryButton icon={<IoCheckmark />} onClick={props.onFinish} />
       </div>
     </div>

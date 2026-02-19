@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { IoCheckmark } from 'react-icons/io5';
-import { PrimaryButton, SecondaryButton } from '../../../../components/Button';
+import { GhostButton, PrimaryButton } from '../../../../components/Button';
 import type { AttemptResult } from '../../../../domain/models';
 import { downloadAttemptPng } from '../../../../ink/export';
 import { formatDurationClock } from '../../../../utils/time';
@@ -99,7 +99,7 @@ export function ReviewView(props: {
       ) : null}
 
       <div className="flex mt-auto justify-end gap-2">
-        <SecondaryButton onClick={props.onClose}>Abbrechen</SecondaryButton>
+        <GhostButton onClick={props.onClose}>Abbrechen</GhostButton>
         <PrimaryButton
           onClick={async () => {
             setSaving(true);
@@ -129,8 +129,8 @@ function ResultChip(props: { active: boolean; label: string; onClick: () => void
     <button
       type="button"
       onClick={props.onClick}
-      className={`rounded-full border border-white/5 bg-white/5 size-13 text-lg font-semibold text-slate-50 ${
-        props.active ? 'border-white/60' : ''
+      className={`rounded-full  size-13 text-lg font-semibold text-slate-50 ${
+        props.active ? 'border-white/40 border' : ''
       }`}
     >
       {props.label}
