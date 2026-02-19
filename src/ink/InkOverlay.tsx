@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { formatTaskPath } from '../features/session/utils/formatTaskPath';
 import { newId } from '../lib/id';
 import { attemptRepo, inkRepo } from '../repositories';
 import { useInkActions } from './actions';
@@ -93,7 +94,11 @@ export function InkOverlay(props: {
       if (cancelled) return;
       const next: Record<string, string> = {};
       for (const r of rows) {
-        next[r.attempt.id] = `Aufgabe ${r.problemIdx}${r.subproblemLabel}`;
+        next[r.attempt.id] = `Aufgabe ${formatTaskPath({
+          problemIdx: r.problemIdx,
+          subproblemLabel: r.subproblemLabel,
+          subsubproblemLabel: r.subsubproblemLabel,
+        })}`;
       }
       setAttemptMetaById(next);
     }
@@ -122,7 +127,6 @@ export function InkOverlay(props: {
       bbox: bboxExpand(v.bbox, paddingWorld),
       lastCreatedAtMs: v.lastCreatedAtMs,
     }));
-    // draw older first, newer on top
     out.sort((a, b) => a.lastCreatedAtMs - b.lastCreatedAtMs);
     return out;
   }, [strokes, props.activeAttemptId, props.ratio]);
@@ -280,8 +284,6 @@ export function InkOverlay(props: {
         opacity,
       });
     }
-
-    // No selection outline anymore (background cards replace this)
 
     if (penRef.current.mode === 'erase' && worldCursor) {
       const r = penRef.current.eraserWorldRadius;

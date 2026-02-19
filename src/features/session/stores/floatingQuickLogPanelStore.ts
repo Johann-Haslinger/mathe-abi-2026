@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type FloatingQuickLogPanelView = 'start' | 'progress' | 'progressDetails' | 'review' | 'next';
+export type FloatingQuickLogPanelView =
+  | 'start'
+  | 'config'
+  | 'progress'
+  | 'progressDetails'
+  | 'review'
+  | 'next';
 
 type FloatingQuickLogPanelState = {
   view: FloatingQuickLogPanelView;
@@ -31,4 +37,3 @@ export const useFloatingQuickLogPanelStore = create<FloatingQuickLogPanelState>(
     },
   ),
 );
-

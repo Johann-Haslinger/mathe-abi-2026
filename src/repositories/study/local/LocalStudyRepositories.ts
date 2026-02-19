@@ -1,5 +1,12 @@
 import { db } from '../../../db/db';
-import type { Attempt, Exercise, Problem, StudySession, Subproblem } from '../../../domain/models';
+import type {
+  Attempt,
+  Exercise,
+  Problem,
+  StudySession,
+  Subproblem,
+  Subsubproblem,
+} from '../../../domain/models';
 import { newId } from '../../../lib/id';
 import type {
   AttemptRepository,
@@ -7,6 +14,7 @@ import type {
   ProblemRepository,
   StudySessionRepository,
   SubproblemRepository,
+  SubsubproblemRepository,
 } from '../interfaces';
 
 export class LocalStudySessionRepository implements StudySessionRepository {
@@ -48,13 +56,33 @@ export class LocalExerciseRepository implements ExerciseRepository {
       await db.exercises.put(next);
       return next;
     }
-    const row: Exercise = { id: newId(), assetId: input.assetId, status: input.status };
+    const row: Exercise = {
+      id: newId(),
+      assetId: input.assetId,
+      status: input.status,
+      taskDepth: 2,
+    };
     await db.exercises.add(row);
     return row;
   }
 
   async setStatus(id: string, status: Exercise['status']): Promise<void> {
     await db.exercises.update(id, { status });
+  }
+
+  async setTaskDepthByAsset(
+    assetId: string,
+    taskDepth: NonNullable<Exercise['taskDepth']>,
+  ): Promise<Exercise> {
+    const existing = await this.getByAsset(assetId);
+    if (existing) {
+      const next: Exercise = { ...existing, taskDepth };
+      await db.exercises.put(next);
+      return next;
+    }
+    const row: Exercise = { id: newId(), assetId, status: 'unknown', taskDepth };
+    await db.exercises.add(row);
+    return row;
   }
 }
 
@@ -99,11 +127,35 @@ export class LocalSubproblemRepository implements SubproblemRepository {
   }
 }
 
+export class LocalSubsubproblemRepository implements SubsubproblemRepository {
+  async getOrCreate(input: { subproblemId: string; label: string }): Promise<Subsubproblem> {
+    const existing = await db.subsubproblems
+      .where('[subproblemId+label]')
+      .equals([input.subproblemId, input.label])
+      .first();
+    if (existing) return existing;
+
+    const row: Subsubproblem = {
+      id: newId(),
+      subproblemId: input.subproblemId,
+      label: input.label.trim(),
+    };
+    await db.subsubproblems.add(row);
+    return row;
+  }
+
+  async listBySubproblemIds(subproblemIds: string[]): Promise<Subsubproblem[]> {
+    if (subproblemIds.length === 0) return [];
+    return db.subsubproblems.where('subproblemId').anyOf(subproblemIds).toArray();
+  }
+}
+
 export class LocalAttemptRepository implements AttemptRepository {
   async create(input: {
-    id: string;
+    id?: string;
     studySessionId: string;
     subproblemId: string;
+    subsubproblemId?: string;
     startedAtMs: number;
     endedAtMs: number;
     seconds: number;
@@ -115,6 +167,7 @@ export class LocalAttemptRepository implements AttemptRepository {
       id: input.id ?? newId(),
       studySessionId: input.studySessionId,
       subproblemId: input.subproblemId,
+      subsubproblemId: input.subsubproblemId,
       startedAtMs: input.startedAtMs,
       endedAtMs: input.endedAtMs,
       seconds: input.seconds,
@@ -145,6 +198,7 @@ export class LocalAttemptRepository implements AttemptRepository {
       assetId: string;
       problemIdx: number;
       subproblemLabel: string;
+      subsubproblemLabel?: string;
     }>
   > {
     const attempts = await db.attempts.where('studySessionId').equals(studySessionId).toArray();
@@ -153,6 +207,15 @@ export class LocalAttemptRepository implements AttemptRepository {
     const subproblemIds = Array.from(new Set(attempts.map((a) => a.subproblemId)));
     const subproblems = await db.subproblems.where('id').anyOf(subproblemIds).toArray();
     if (subproblems.length === 0) return [];
+
+    const subsubproblemIds = Array.from(
+      new Set(attempts.map((a) => a.subsubproblemId).filter((x): x is string => Boolean(x))),
+    );
+    const subsubproblems =
+      subsubproblemIds.length > 0
+        ? await db.subsubproblems.where('id').anyOf(subsubproblemIds).toArray()
+        : [];
+    const subsubproblemById = new Map(subsubproblems.map((ssp) => [ssp.id, ssp]));
 
     const subproblemById = new Map(subproblems.map((sp) => [sp.id, sp]));
     const problemIds = Array.from(new Set(subproblems.map((sp) => sp.problemId)));
@@ -166,6 +229,7 @@ export class LocalAttemptRepository implements AttemptRepository {
     return attempts
       .map((a) => {
         const sp = subproblemById.get(a.subproblemId);
+        const ssp = a.subsubproblemId ? subsubproblemById.get(a.subsubproblemId) : undefined;
         const p = sp ? problemById.get(sp.problemId) : undefined;
         const ex = p ? exerciseById.get(p.exerciseId) : undefined;
         return {
@@ -173,6 +237,7 @@ export class LocalAttemptRepository implements AttemptRepository {
           assetId: ex?.assetId ?? 'unknown',
           problemIdx: p?.idx ?? 0,
           subproblemLabel: sp?.label ?? '?',
+          subsubproblemLabel: ssp?.label,
         };
       })
       .filter((r) => r.assetId !== 'unknown')
@@ -182,7 +247,14 @@ export class LocalAttemptRepository implements AttemptRepository {
   async listForSessionAsset(input: {
     studySessionId: string;
     assetId: string;
-  }): Promise<Array<{ attempt: Attempt; problemIdx: number; subproblemLabel: string }>> {
+  }): Promise<
+    Array<{
+      attempt: Attempt;
+      problemIdx: number;
+      subproblemLabel: string;
+      subsubproblemLabel?: string;
+    }>
+  > {
     const exercise = await db.exercises.where('assetId').equals(input.assetId).first();
     if (!exercise) return [];
 
@@ -209,6 +281,15 @@ export class LocalAttemptRepository implements AttemptRepository {
       .equals(input.studySessionId)
       .toArray();
 
+    const subsubproblemIds = Array.from(
+      new Set(attempts.map((a) => a.subsubproblemId).filter((x): x is string => Boolean(x))),
+    );
+    const subsubproblems =
+      subsubproblemIds.length > 0
+        ? await db.subsubproblems.where('id').anyOf(subsubproblemIds).toArray()
+        : [];
+    const subsubproblemLabelById = new Map(subsubproblems.map((ssp) => [ssp.id, ssp.label]));
+
     return attempts
       .filter((a) => subproblemIds.has(a.subproblemId))
       .map((a) => {
@@ -217,6 +298,9 @@ export class LocalAttemptRepository implements AttemptRepository {
           attempt: a,
           problemIdx: meta?.problemIdx ?? 0,
           subproblemLabel: meta?.subproblemLabel ?? '?',
+          subsubproblemLabel: a.subsubproblemId
+            ? subsubproblemLabelById.get(a.subsubproblemId)
+            : undefined,
         };
       })
       .sort((a, b) => a.attempt.endedAtMs - b.attempt.endedAtMs);

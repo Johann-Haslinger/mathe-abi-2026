@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AttemptResult, ExercisePageStatus } from '../../../domain/models';
+import { db } from '../../../db/db';
+import type { AttemptResult, ExercisePageStatus, ExerciseTaskDepth } from '../../../domain/models';
 import { newId } from '../../../lib/id';
 import {
   attemptRepo,
@@ -8,6 +9,7 @@ import {
   problemRepo,
   studySessionRepo,
   subproblemRepo,
+  subsubproblemRepo,
 } from '../../../repositories';
 
 function getSessionKey(input: { subjectId: string; topicId: string; startedAtMs: number }) {
@@ -20,6 +22,7 @@ type CurrentAttempt = {
   assetId?: string;
   problemIdx: number;
   subproblemLabel: string;
+  subsubproblemLabel: string;
 };
 
 type StudyState = {
@@ -28,7 +31,9 @@ type StudyState = {
   currentAttempt: CurrentAttempt | null;
   problemIdx: number;
   subproblemLabel: string;
+  subsubproblemLabel: string;
   exerciseStatusByAssetId: Record<string, ExercisePageStatus>;
+  taskDepthByAssetId: Record<string, ExerciseTaskDepth>;
 
   bindToSession: (input: { subjectId: string; topicId: string; startedAtMs: number }) => void;
 
@@ -41,11 +46,17 @@ type StudyState = {
 
   setProblemIdx: (idx: number) => void;
   setSubproblemLabel: (label: string) => void;
+  setSubsubproblemLabel: (label: string) => void;
+
+  loadTaskDepth: (assetId: string) => Promise<void>;
+  setTaskDepth: (assetId: string, depth: ExerciseTaskDepth) => Promise<void>;
+  decreaseTaskDepthWithCleanup: (assetId: string, nextDepth: ExerciseTaskDepth) => Promise<void>;
 
   startAttempt: (input?: {
     assetId?: string;
     problemIdx?: number;
     subproblemLabel?: string;
+    subsubproblemLabel?: string;
   }) => void;
   cancelAttempt: () => void;
 
@@ -56,6 +67,7 @@ type StudyState = {
     assetId?: string;
     problemIdx?: number;
     subproblemLabel?: string;
+    subsubproblemLabel?: string;
     endedAtMs: number;
     result: AttemptResult;
     note?: string;
@@ -72,7 +84,9 @@ type PersistedStudyState = Pick<
   | 'currentAttempt'
   | 'problemIdx'
   | 'subproblemLabel'
+  | 'subsubproblemLabel'
   | 'exerciseStatusByAssetId'
+  | 'taskDepthByAssetId'
 >;
 
 export const useStudyStore = create<StudyState>()(
@@ -83,7 +97,9 @@ export const useStudyStore = create<StudyState>()(
       currentAttempt: null,
       problemIdx: 1,
       subproblemLabel: 'a',
+      subsubproblemLabel: '1',
       exerciseStatusByAssetId: {},
+      taskDepthByAssetId: {},
 
       bindToSession: (input) =>
         set((s) => {
@@ -95,7 +111,9 @@ export const useStudyStore = create<StudyState>()(
             currentAttempt: null,
             problemIdx: 1,
             subproblemLabel: 'a',
+            subsubproblemLabel: '1',
             exerciseStatusByAssetId: {},
+            taskDepthByAssetId: {},
           };
         }),
 
@@ -120,12 +138,93 @@ export const useStudyStore = create<StudyState>()(
 
       setProblemIdx: (idx) => set({ problemIdx: idx }),
       setSubproblemLabel: (label) => set({ subproblemLabel: label }),
+      setSubsubproblemLabel: (label) => set({ subsubproblemLabel: label }),
+
+      loadTaskDepth: async (assetId) => {
+        const ex = await exerciseRepo.getByAsset(assetId);
+        const depth = (ex?.taskDepth ?? 2) as ExerciseTaskDepth;
+        set((s) => ({
+          taskDepthByAssetId: { ...s.taskDepthByAssetId, [assetId]: depth },
+        }));
+      },
+
+      setTaskDepth: async (assetId, depth) => {
+        const ex = await exerciseRepo.setTaskDepthByAsset(assetId, depth);
+        set((s) => ({
+          taskDepthByAssetId: {
+            ...s.taskDepthByAssetId,
+            [assetId]: (ex.taskDepth ?? depth) as ExerciseTaskDepth,
+          },
+        }));
+      },
+
+      decreaseTaskDepthWithCleanup: async (assetId, nextDepth) => {
+        const ex = await exerciseRepo.getByAsset(assetId);
+        const currentDepth = (ex?.taskDepth ??
+          get().taskDepthByAssetId[assetId] ??
+          2) as ExerciseTaskDepth;
+        if (nextDepth >= currentDepth) {
+          await get().setTaskDepth(assetId, nextDepth);
+          return;
+        }
+
+        const exercise = ex ?? (await exerciseRepo.setTaskDepthByAsset(assetId, currentDepth));
+        const problems = await db.problems.where('exerciseId').equals(exercise.id).toArray();
+        const problemIds = problems.map((p) => p.id);
+        const subproblems =
+          problemIds.length > 0
+            ? await db.subproblems.where('problemId').anyOf(problemIds).toArray()
+            : [];
+        const subproblemIds = subproblems.map((sp) => sp.id);
+
+        const attempts =
+          subproblemIds.length > 0
+            ? await db.attempts.where('subproblemId').anyOf(subproblemIds).toArray()
+            : [];
+
+        const labelBySubId = new Map(subproblems.map((sp) => [sp.id, sp.label]));
+        const attemptIdsToDelete =
+          currentDepth === 3 && nextDepth === 2
+            ? attempts.filter((a) => Boolean(a.subsubproblemId)).map((a) => a.id)
+            : currentDepth >= 2 && nextDepth === 1
+            ? attempts
+                .filter((a) => {
+                  if (a.subsubproblemId) return true;
+                  const lbl = (labelBySubId.get(a.subproblemId) ?? '').trim();
+                  return lbl !== '';
+                })
+                .map((a) => a.id)
+            : [];
+
+        if (attemptIdsToDelete.length) {
+          await db.attempts.bulkDelete(attemptIdsToDelete);
+          await db.inkStrokes.where('attemptId').anyOf(attemptIdsToDelete).delete();
+        }
+
+        if (nextDepth <= 2) {
+          if (subproblemIds.length) {
+            await db.subsubproblems.where('subproblemId').anyOf(subproblemIds).delete();
+          }
+        }
+
+        if (nextDepth === 1) {
+          const subproblemIdsToDelete = subproblems
+            .filter((sp) => sp.label.trim() !== '')
+            .map((sp) => sp.id);
+          if (subproblemIdsToDelete.length) {
+            await db.subproblems.bulkDelete(subproblemIdsToDelete);
+          }
+        }
+
+        await get().setTaskDepth(assetId, nextDepth);
+      },
 
       startAttempt: (input) => {
         if (get().currentAttempt) return;
         const startedAtMs = Date.now();
         const snapshotProblemIdx = input?.problemIdx ?? get().problemIdx;
         const snapshotSubproblemLabel = input?.subproblemLabel ?? get().subproblemLabel;
+        const snapshotSubsubproblemLabel = input?.subsubproblemLabel ?? get().subsubproblemLabel;
         set({
           currentAttempt: {
             attemptId: newId(),
@@ -133,6 +232,7 @@ export const useStudyStore = create<StudyState>()(
             assetId: input?.assetId,
             problemIdx: snapshotProblemIdx,
             subproblemLabel: snapshotSubproblemLabel,
+            subsubproblemLabel: snapshotSubsubproblemLabel,
           },
         });
       },
@@ -170,8 +270,12 @@ export const useStudyStore = create<StudyState>()(
 
         const problemIdx = input.problemIdx ?? currentAttempt.problemIdx;
         const subproblemLabel = input.subproblemLabel ?? currentAttempt.subproblemLabel;
+        const subsubproblemLabel = input.subsubproblemLabel ?? currentAttempt.subsubproblemLabel;
 
         const exercise = await exerciseRepo.upsert({ assetId, status: 'partial' });
+        const depth = (exercise.taskDepth ??
+          get().taskDepthByAssetId[assetId] ??
+          2) as ExerciseTaskDepth;
 
         const problem = await problemRepo.getOrCreate({
           exerciseId: exercise.id,
@@ -180,13 +284,24 @@ export const useStudyStore = create<StudyState>()(
 
         const subproblem = await subproblemRepo.getOrCreate({
           problemId: problem.id,
-          label: subproblemLabel,
+          label: depth === 1 ? '' : subproblemLabel,
         });
+
+        const subsubproblemId =
+          depth === 3
+            ? (
+                await subsubproblemRepo.getOrCreate({
+                  subproblemId: subproblem.id,
+                  label: subsubproblemLabel,
+                })
+              ).id
+            : undefined;
 
         await attemptRepo.create({
           id: currentAttempt.attemptId,
           studySessionId,
           subproblemId: subproblem.id,
+          subsubproblemId,
           startedAtMs,
           endedAtMs,
           seconds,
@@ -211,12 +326,14 @@ export const useStudyStore = create<StudyState>()(
           currentAttempt: null,
           problemIdx: 1,
           subproblemLabel: 'a',
+          subsubproblemLabel: '1',
           exerciseStatusByAssetId: {},
+          taskDepthByAssetId: {},
         }),
     }),
     {
       name: 'mathe-abi-2026:study-store',
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         // v1 stored `attemptStartedAtMs`; v2 uses `currentAttempt`.
         if (version === 1 && persisted && typeof persisted === 'object') {
@@ -248,6 +365,37 @@ export const useStudyStore = create<StudyState>()(
             };
           }
         }
+        // v4 adds task depth + 3rd-level label.
+        if (version === 3 && persisted && typeof persisted === 'object') {
+          const p = persisted as PersistedStudyState & {
+            subsubproblemLabel?: unknown;
+            taskDepthByAssetId?: unknown;
+          };
+          const caUnknown = (p.currentAttempt ?? null) as unknown;
+          const migratedCurrentAttempt: CurrentAttempt | null =
+            caUnknown && typeof caUnknown === 'object'
+              ? (() => {
+                  const ca = caUnknown as Omit<CurrentAttempt, 'subsubproblemLabel'> & {
+                    subsubproblemLabel?: unknown;
+                  };
+                  return {
+                    ...(ca as Omit<CurrentAttempt, 'subsubproblemLabel'>),
+                    subsubproblemLabel:
+                      typeof ca.subsubproblemLabel === 'string' ? ca.subsubproblemLabel : '1',
+                  } satisfies CurrentAttempt;
+                })()
+              : null;
+          return {
+            ...(persisted as PersistedStudyState),
+            subsubproblemLabel:
+              typeof p.subsubproblemLabel === 'string' ? p.subsubproblemLabel : '1',
+            taskDepthByAssetId:
+              p.taskDepthByAssetId && typeof p.taskDepthByAssetId === 'object'
+                ? (p.taskDepthByAssetId as Record<string, ExerciseTaskDepth>)
+                : {},
+            currentAttempt: migratedCurrentAttempt,
+          };
+        }
         return persisted as PersistedStudyState;
       },
       partialize: (s) => ({
@@ -256,7 +404,9 @@ export const useStudyStore = create<StudyState>()(
         currentAttempt: s.currentAttempt,
         problemIdx: s.problemIdx,
         subproblemLabel: s.subproblemLabel,
+        subsubproblemLabel: s.subsubproblemLabel,
         exerciseStatusByAssetId: s.exerciseStatusByAssetId,
+        taskDepthByAssetId: s.taskDepthByAssetId,
       }),
     },
   ),

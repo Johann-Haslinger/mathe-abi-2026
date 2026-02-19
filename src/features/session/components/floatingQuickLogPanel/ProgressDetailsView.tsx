@@ -4,6 +4,7 @@ import { IoCheckmark } from 'react-icons/io5';
 import { GhostButton, PrimaryButton, SecondaryButton } from '../../../../components/Button';
 import { formatDurationClock } from '../../../../utils/time';
 import { useStudyStore } from '../../stores/studyStore';
+import { formatTaskPath } from '../../utils/formatTaskPath';
 import { PanelViewHeader, type DragGripProps } from './PanelViewHeader';
 
 export function ProgressDetailsView(props: {
@@ -13,7 +14,15 @@ export function ProgressDetailsView(props: {
   onClose: () => void;
 }) {
   const currentAttempt = useStudyStore((s) => s.currentAttempt);
+  const taskDepthByAssetId = useStudyStore((s) => s.taskDepthByAssetId);
+  const loadTaskDepth = useStudyStore((s) => s.loadTaskDepth);
   const pastSeconds = usePastTimeInSeconds();
+  const depth = currentAttempt?.assetId ? taskDepthByAssetId[currentAttempt.assetId] : undefined;
+
+  useEffect(() => {
+    if (!currentAttempt?.assetId) return;
+    void loadTaskDepth(currentAttempt.assetId);
+  }, [currentAttempt?.assetId, loadTaskDepth]);
 
   return (
     <div className="h-full flex flex-col">
@@ -24,7 +33,7 @@ export function ProgressDetailsView(props: {
           {formatDurationClock(pastSeconds)}
         </span>
         <span className="text-base mt-2 opacity-70">
-          Aufgabe {currentAttempt?.problemIdx} {currentAttempt?.subproblemLabel}
+          Aufgabe {formatTaskPath(currentAttempt, depth)}
         </span>
       </div>
 

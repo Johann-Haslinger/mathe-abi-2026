@@ -4,8 +4,14 @@ import { Modal } from '../../../components/Modal';
 import type { Attempt } from '../../../domain/models';
 import { attemptRepo, studySessionRepo } from '../../../repositories';
 import { formatClockTime, formatDuration } from '../../../utils/time';
+import { formatTaskPath } from '../utils/formatTaskPath';
 
-type Row = { attempt: Attempt; problemIdx: number; subproblemLabel: string };
+type Row = {
+  attempt: Attempt;
+  problemIdx: number;
+  subproblemLabel: string;
+  subsubproblemLabel?: string;
+};
 
 export function ExerciseReviewModal(props: {
   open: boolean;
@@ -57,26 +63,39 @@ export function ExerciseReviewModal(props: {
   }, [rows]);
 
   const grouped = useMemo(() => {
-    const byProblem = new Map<number, Map<string, Attempt[]>>();
+    const byProblem = new Map<
+      number,
+      Map<string, { leafKey: string; path: string; attempts: Attempt[] }>
+    >();
     for (const r of rows) {
       const p = r.problemIdx;
-      const l = r.subproblemLabel;
-      const sub = byProblem.get(p) ?? new Map<string, Attempt[]>();
-      const arr = sub.get(l) ?? [];
-      arr.push(r.attempt);
-      sub.set(l, arr);
+      const leafKey = `${(r.subproblemLabel ?? '').trim()}|||${(
+        r.subsubproblemLabel ?? ''
+      ).trim()}`;
+      const path = formatTaskPath({
+        problemIdx: r.problemIdx,
+        subproblemLabel: r.subproblemLabel,
+        subsubproblemLabel: r.subsubproblemLabel,
+      });
+      const sub =
+        byProblem.get(p) ??
+        new Map<string, { leafKey: string; path: string; attempts: Attempt[] }>();
+      const entry = sub.get(leafKey) ?? { leafKey, path, attempts: [] };
+      entry.attempts.push(r.attempt);
+      sub.set(leafKey, entry);
       byProblem.set(p, sub);
     }
     const problems = Array.from(byProblem.entries())
       .sort((a, b) => a[0] - b[0])
       .map(([problemIdx, sub]) => ({
         problemIdx,
-        subproblems: Array.from(sub.entries())
-          .sort((a, b) => a[0].localeCompare(b[0]))
-          .map(([label, attempts]) => ({
-            label,
-            attempts: attempts.slice().sort((a, b) => b.endedAtMs - a.endedAtMs),
-          })),
+        leaves: Array.from(sub.values())
+          .map((x) => ({
+            leafKey: x.leafKey,
+            path: x.path,
+            attempts: x.attempts.slice().sort((a, b) => b.endedAtMs - a.endedAtMs),
+          }))
+          .sort((a, b) => a.path.localeCompare(b.path)),
       }));
     return problems;
   }, [rows]);
@@ -128,24 +147,24 @@ export function ExerciseReviewModal(props: {
                     Aufgabe {p.problemIdx}
                   </div>
                   <div className="mt-2 space-y-2">
-                    {p.subproblems.map((sp) => (
+                    {p.leaves.map((leaf) => (
                       <div
-                        key={`${p.problemIdx}:${sp.label}`}
+                        key={`${p.problemIdx}:${leaf.leafKey}`}
                         className="rounded-xl border border-white/5 bg-white/3 p-3"
                       >
                         {(() => {
-                          const a = sp.attempts[0];
+                          const a = leaf.attempts[0];
                           return (
                             <>
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                     <div className="text-sm font-medium text-white">
-                                      Teilaufgabe {sp.label}
+                                      Aufgabe {leaf.path}
                                     </div>
-                                    {sp.attempts.length > 1 ? (
+                                    {leaf.attempts.length > 1 ? (
                                       <span className="text-xs">
-                                        ({sp.attempts.length} Versuche)
+                                        ({leaf.attempts.length} Versuche)
                                       </span>
                                     ) : null}
                                   </div>

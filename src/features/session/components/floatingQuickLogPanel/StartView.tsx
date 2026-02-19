@@ -1,7 +1,7 @@
 import { Minus, Plus } from 'lucide-react';
-import { useState } from 'react';
-import { IoInformationCircleOutline } from 'react-icons/io5';
-import { GhostButton, PrimaryButton, SecondaryButton } from '../../../../components/Button';
+import { useEffect, useMemo, useState } from 'react';
+import { IoSettingsOutline } from 'react-icons/io5';
+import { PrimaryButton, SecondaryButton } from '../../../../components/Button';
 import { useStudyStore } from '../../stores/studyStore';
 import { PanelViewHeader, type DragGripProps } from './PanelViewHeader';
 import { HighlightText, MutedText, PanelHeading } from './TextHighlight';
@@ -19,9 +19,88 @@ export function StartView(props: {
   topicId: string;
   gripProps: DragGripProps;
   onStarted: () => void;
+  onOpenConfig: () => void;
 }) {
-  const { problemIdx, subproblemLabel, setProblemIdx, setSubproblemLabel, startAttempt } =
-    useStudyStore();
+  const {
+    problemIdx,
+    subproblemLabel,
+    subsubproblemLabel,
+    setProblemIdx,
+    setSubproblemLabel,
+    setSubsubproblemLabel,
+    startAttempt,
+    loadTaskDepth,
+    taskDepthByAssetId,
+  } = useStudyStore();
+
+  useEffect(() => {
+    void loadTaskDepth(props.assetId);
+  }, [props.assetId, loadTaskDepth]);
+
+  const depth = taskDepthByAssetId[props.assetId] ?? 2;
+  const showSub = depth >= 2;
+  const showSubSub = depth >= 3;
+
+  const rows = useMemo(() => {
+    const out: Array<{ key: string; label: string; right: React.ReactNode }> = [
+      {
+        key: 'problem',
+        label: 'Aufgabe',
+        right: (
+          <Stepper
+            key={`problem:${problemIdx}`}
+            value={String(problemIdx)}
+            kind="number"
+            min={1}
+            max={999}
+            onChange={(next) => setProblemIdx(Number.parseInt(next, 10))}
+          />
+        ),
+      },
+    ];
+    if (showSub) {
+      out.push({
+        key: 'subproblem',
+        label: 'Teilaufgabe',
+        right: (
+          <Stepper
+            key={`subproblem:${subproblemLabel}`}
+            value={subproblemLabel}
+            kind="free"
+            emptyValue="a"
+            minFreeNumber={1}
+            onChange={(next) => setSubproblemLabel(next)}
+          />
+        ),
+      });
+    }
+    if (showSubSub) {
+      out.push({
+        key: 'subsubproblem',
+        label: 'Unter-Teilaufgabe',
+        right: (
+          <Stepper
+            key={`subsubproblem:${subsubproblemLabel}`}
+            value={subsubproblemLabel}
+            kind="free"
+            emptyValue="1"
+            minFreeNumber={1}
+            onChange={(next) => setSubsubproblemLabel(next)}
+          />
+        ),
+      });
+    }
+    return out;
+  }, [
+    problemIdx,
+    setProblemIdx,
+    showSub,
+    showSubSub,
+    subproblemLabel,
+    setSubproblemLabel,
+    subsubproblemLabel,
+    setSubsubproblemLabel,
+  ]);
 
   return (
     <div className="flex flex-col h-full">
@@ -33,45 +112,25 @@ export function StartView(props: {
               <HighlightText>Starten?</HighlightText>
             </PanelHeading>
           }
-          right={
-            <GhostButton
-              onClick={() => {}}
-              icon={<IoInformationCircleOutline className="text-2xl" />}
-            />
-          }
+          // right={
+          //   <>
+          //     <GhostButton
+          //       onClick={() => {}}
+          //       icon={<IoInformationCircleOutline className="text-2xl" />}
+          //     />
+          //   </>
+          // }
         />
 
         <div className="mt-3 space-y-1">
-          <Row
-            label="Aufgabe"
-            right={
-              <Stepper
-                key={`problem:${problemIdx}`}
-                value={String(problemIdx)}
-                kind="number"
-                min={1}
-                max={999}
-                onChange={(next) => setProblemIdx(Number.parseInt(next, 10))}
-              />
-            }
-          />
-
-          <Row
-            label="Teilaufgabe"
-            right={
-              <Stepper
-                key={`subproblem:${subproblemLabel}`}
-                value={subproblemLabel}
-                kind="free"
-                emptyValue="a"
-                onChange={(next) => setSubproblemLabel(next)}
-              />
-            }
-          />
+          {rows.map((r) => (
+            <Row key={r.key} label={r.label} right={r.right} />
+          ))}
         </div>
       </div>
 
-      <div className="mt-auto flex items-center justify-end gap-2">
+      <div className="mt-auto flex items-center justify-between gap-2">
+        <SecondaryButton onClick={props.onOpenConfig} icon={<IoSettingsOutline />} />
         <PrimaryButton
           onClick={() => {
             startAttempt({ assetId: props.assetId });
@@ -100,10 +159,24 @@ function Stepper(props: {
   min?: number;
   max?: number;
   emptyValue?: string;
+  minFreeNumber?: number;
   onChange: (next: string) => void;
 }) {
   const [draft, setDraft] = useState(props.value);
   const displayValue = draft;
+
+  const parseFreeAsInt = (raw: string) => {
+    const t = raw.trim();
+    if (!t) return null;
+    if (!/^\d+$/.test(t)) return null;
+    const n = Number.parseInt(t, 10);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const clampFreeNumber = (n: number) => {
+    const min = props.minFreeNumber ?? Number.NEGATIVE_INFINITY;
+    return Math.max(min, n);
+  };
 
   const parseCurrentNumber = () => {
     const digits = displayValue.replace(/[^\d]/g, '');
@@ -129,19 +202,28 @@ function Stepper(props: {
     }
 
     const trimmed = displayValue.trim();
-    const normalized = trimmed || props.emptyValue || '';
+    const maybeFreeN = props.minFreeNumber != null ? parseFreeAsInt(trimmed) : null;
+    const normalized =
+      maybeFreeN != null ? String(clampFreeNumber(maybeFreeN)) : trimmed || props.emptyValue || '';
     setDraft(normalized);
     props.onChange(normalized);
   };
 
+  const freeN =
+    props.kind === 'free' && props.minFreeNumber != null ? parseFreeAsInt(displayValue) : null;
+
   const decDisabled =
     props.kind === 'number'
       ? parseCurrentNumber() <= (props.min ?? Number.NEGATIVE_INFINITY)
+      : freeN != null
+      ? clampFreeNumber(freeN) <= (props.minFreeNumber ?? Number.NEGATIVE_INFINITY)
       : !canDecrementSuffix((displayValue.trim() || props.emptyValue || '').trim());
 
   const incDisabled =
     props.kind === 'number'
       ? parseCurrentNumber() >= (props.max ?? Number.POSITIVE_INFINITY)
+      : freeN != null
+      ? false
       : !canIncrementSuffix((displayValue.trim() || props.emptyValue || '').trim());
 
   return (
@@ -171,6 +253,13 @@ function Stepper(props: {
               props.onChange(normalized);
               return;
             }
+            if (freeN != null) {
+              const next = clampFreeNumber(freeN - 1);
+              const normalized = String(next);
+              setDraft(normalized);
+              props.onChange(normalized);
+              return;
+            }
             const current = displayValue.trim() || props.emptyValue || '';
             const next = decrementSuffix(current);
             const normalized = (next || props.emptyValue || '').trim() || props.emptyValue || '';
@@ -184,6 +273,13 @@ function Stepper(props: {
           onClick={() => {
             if (props.kind === 'number') {
               const next = clampNumber(parseCurrentNumber() + 1);
+              const normalized = String(next);
+              setDraft(normalized);
+              props.onChange(normalized);
+              return;
+            }
+            if (freeN != null) {
+              const next = clampFreeNumber(freeN + 1);
               const normalized = String(next);
               setDraft(normalized);
               props.onChange(normalized);

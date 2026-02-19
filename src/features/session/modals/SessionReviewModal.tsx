@@ -5,6 +5,7 @@ import { Modal } from '../../../components/Modal';
 import type { Attempt, StudySession } from '../../../domain/models';
 import { assetRepo, attemptRepo, studySessionRepo } from '../../../repositories';
 import { formatClockTime, formatDuration } from '../../../utils/time';
+import { formatTaskPath } from '../utils/formatTaskPath';
 
 export type SessionSummaryState = {
   studySessionId?: string;
@@ -124,10 +125,12 @@ export function SessionReviewModal(props: {
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                     <div className="text-xs font-semibold text-white/50">
-                                      Aufgabe {r.problemIdx}
-                                    </div>
-                                    <div className="text-sm font-medium text-white">
-                                      Teilaufgabe {r.subproblemLabel}
+                                      Aufgabe{' '}
+                                      {formatTaskPath({
+                                        problemIdx: r.problemIdx,
+                                        subproblemLabel: r.subproblemLabel,
+                                        subsubproblemLabel: r.subsubproblemLabel,
+                                      })}
                                     </div>
                                   </div>
                                   <div className="mt-1 text-xs text-white/50">
@@ -171,6 +174,7 @@ function useSessionSummaryData(open: boolean, summary: SessionSummaryState | nul
       assetId: string;
       problemIdx: number;
       subproblemLabel: string;
+      subsubproblemLabel?: string;
     }>
   >([]);
   const [assetTitleById, setAssetTitleById] = useState<Record<string, string>>({});
@@ -260,6 +264,7 @@ function useSessionExerciseGroups(
     assetId: string;
     problemIdx: number;
     subproblemLabel: string;
+    subsubproblemLabel?: string;
   }>,
   assetTitleById: Record<string, string>,
 ) {
@@ -268,6 +273,7 @@ function useSessionExerciseGroups(
       attempt: Attempt;
       problemIdx: number;
       subproblemLabel: string;
+      subsubproblemLabel?: string;
     };
     type Group = {
       key: string;
@@ -292,6 +298,7 @@ function useSessionExerciseGroups(
         attempt: d.attempt,
         problemIdx: d.problemIdx,
         subproblemLabel: d.subproblemLabel,
+        subsubproblemLabel: d.subsubproblemLabel,
       };
       if (!existing) {
         map.set(key, {

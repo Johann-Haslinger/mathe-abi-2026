@@ -3,6 +3,7 @@ import { useEffect, useMemo } from 'react';
 import { useActiveSessionStore } from '../../../stores/activeSessionStore';
 import { useFloatingQuickLogPanelStore } from '../stores/floatingQuickLogPanelStore';
 import { useStudyStore } from '../stores/studyStore';
+import { ConfigView } from './floatingQuickLogPanel/ConfigView';
 import { NextView } from './floatingQuickLogPanel/NextView';
 import { ProgressDetailsView } from './floatingQuickLogPanel/ProgressDetailsView';
 import { ProgressView } from './floatingQuickLogPanel/ProgressView.tsx';
@@ -10,7 +11,7 @@ import { ReviewView } from './floatingQuickLogPanel/ReviewView';
 import { StartView } from './floatingQuickLogPanel/StartView.tsx';
 import { incrementSuffix } from './floatingQuickLogPanel/stepperSuffix';
 
-type PanelView = 'start' | 'progress' | 'progressDetails' | 'review' | 'next';
+type PanelView = 'start' | 'config' | 'progress' | 'progressDetails' | 'review' | 'next';
 
 export function FloatingQuickLogPanel(props: {
   assetId: string;
@@ -29,48 +30,29 @@ export function FloatingQuickLogPanel(props: {
   const {
     problemIdx,
     subproblemLabel,
+    subsubproblemLabel,
     ensureStudySession,
     setProblemIdx,
     setSubproblemLabel,
+    setSubsubproblemLabel,
     cancelAttempt,
     logAttempt,
     setExerciseStatus,
     currentAttempt,
+    taskDepthByAssetId,
+    loadTaskDepth,
   } = useStudyStore();
 
   const dragControls = useDragControls();
   const x = useMotionValue(storedX);
   const y = useMotionValue(storedY);
 
-  const viewHeightPx: Record<PanelView, number> = useMemo(
-    () => ({
-      start: 280,
-      progress: 64,
-      progressDetails: 240,
-      review: 360,
-      next: 320,
-    }),
-    [],
-  );
+  const { viewHeightPx, viewWidthPx } = usePanelDimensions();
 
-  const viewWidthPx: Record<PanelView, number> = useMemo(
-    () => ({
-      start: 256,
-      progress: 154,
-      progressDetails: 256,
-      review: 256,
-      next: 256,
-    }),
-    [],
-  );
+  useResetPanelViewOnAttemptEnd({ currentAttempt, view, setView });
+  useLoadAssetTaskDepth({ assetId: props.assetId, loadTaskDepth });
 
-  useEffect(() => {
-    if (!currentAttempt) {
-      if (view === 'progress' || view === 'progressDetails' || view === 'review') {
-        setView('start');
-      }
-    }
-  }, [currentAttempt, setView, view]);
+  const depth = taskDepthByAssetId[props.assetId] ?? 2;
 
   const gripProps = useMemo(
     () => ({
@@ -124,6 +106,15 @@ export function FloatingQuickLogPanel(props: {
                     subjectId={props.subjectId}
                     topicId={props.topicId}
                     onStarted={() => setView('progress')}
+                    onOpenConfig={() => setView('config')}
+                  />
+                ) : null}
+
+                {view === 'config' ? (
+                  <ConfigView
+                    assetId={props.assetId}
+                    gripProps={gripProps}
+                    onClose={() => setView('start')}
                   />
                 ) : null}
 
@@ -176,13 +167,21 @@ export function FloatingQuickLogPanel(props: {
                 {view === 'next' ? (
                   <NextView
                     gripProps={gripProps}
+                    taskDepth={depth}
                     onNextSubproblem={() => {
-                      setSubproblemLabel(incrementSuffix((subproblemLabel || 'a').trim()) || 'a');
+                      if (depth === 3) {
+                        setSubsubproblemLabel(
+                          incrementSuffix((subsubproblemLabel || '1').trim()) || '1',
+                        );
+                      } else {
+                        setSubproblemLabel(incrementSuffix((subproblemLabel || 'a').trim()) || 'a');
+                      }
                       setView('start');
                     }}
                     onNewProblem={() => {
                       setProblemIdx(problemIdx + 1);
                       setSubproblemLabel('a');
+                      setSubsubproblemLabel('1');
                       setView('start');
                     }}
                     onMarkProgress={() => {
@@ -203,4 +202,60 @@ export function FloatingQuickLogPanel(props: {
       </motion.div>
     </div>
   );
+}
+
+function usePanelDimensions() {
+  const viewHeightPx: Record<PanelView, number> = useMemo(
+    () => ({
+      start: 310,
+      config: 280,
+      progress: 64,
+      progressDetails: 240,
+      review: 360,
+      next: 320,
+    }),
+    [],
+  );
+
+  const viewWidthPx: Record<PanelView, number> = useMemo(
+    () => ({
+      start: 256,
+      config: 220,
+      progress: 154,
+      progressDetails: 256,
+      review: 256,
+      next: 256,
+    }),
+    [],
+  );
+
+  return { viewHeightPx, viewWidthPx };
+}
+
+function useResetPanelViewOnAttemptEnd(input: {
+  currentAttempt: unknown;
+  view: PanelView;
+  setView: (v: PanelView) => void;
+}) {
+  useEffect(() => {
+    if (!input.currentAttempt) {
+      if (
+        input.view === 'progress' ||
+        input.view === 'progressDetails' ||
+        input.view === 'review'
+      ) {
+        input.setView('start');
+      }
+    }
+  }, [input.currentAttempt, input.setView, input.view]);
+}
+
+function useLoadAssetTaskDepth(input: {
+  assetId: string;
+  loadTaskDepth: (assetId: string) => Promise<void>;
+}) {
+  useEffect(() => {
+    if (!input.assetId) return;
+    void input.loadTaskDepth(input.assetId);
+  }, [input.assetId, input.loadTaskDepth]);
 }

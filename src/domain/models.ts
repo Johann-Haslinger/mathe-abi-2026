@@ -72,7 +72,10 @@ export type Exercise = {
   id: Id;
   assetId: Id;
   status: ExercisePageStatus;
+  taskDepth: ExerciseTaskDepth;
 };
+
+export type ExerciseTaskDepth = 1 | 2 | 3;
 
 export type Problem = {
   id: Id;
@@ -86,12 +89,19 @@ export type Subproblem = {
   label: string;
 };
 
+export type Subsubproblem = {
+  id: Id;
+  subproblemId: Id;
+  label: string;
+};
+
 export type AttemptResult = 'correct' | 'partial' | 'wrong';
 
 export type Attempt = {
   id: Id;
   studySessionId: Id;
   subproblemId: Id;
+  subsubproblemId?: Id;
   startedAtMs: number;
   endedAtMs: number;
   seconds: number;

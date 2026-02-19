@@ -3,9 +3,11 @@ import type {
   AttemptResult,
   Exercise,
   ExercisePageStatus,
+  ExerciseTaskDepth,
   Problem,
   StudySession,
   Subproblem,
+  Subsubproblem,
 } from '../../domain/models';
 
 export interface StudySessionRepository {
@@ -23,6 +25,7 @@ export interface ExerciseRepository {
   getByAsset(assetId: string): Promise<Exercise | undefined>;
   upsert(input: { assetId: string; status: ExercisePageStatus }): Promise<Exercise>;
   setStatus(id: string, status: ExercisePageStatus): Promise<void>;
+  setTaskDepthByAsset(assetId: string, taskDepth: ExerciseTaskDepth): Promise<Exercise>;
 }
 
 export interface ProblemRepository {
@@ -35,11 +38,17 @@ export interface SubproblemRepository {
   listByProblemIds(problemIds: string[]): Promise<Subproblem[]>;
 }
 
+export interface SubsubproblemRepository {
+  getOrCreate(input: { subproblemId: string; label: string }): Promise<Subsubproblem>;
+  listBySubproblemIds(subproblemIds: string[]): Promise<Subsubproblem[]>;
+}
+
 export interface AttemptRepository {
   create(input: {
     id?: string;
     studySessionId: string;
     subproblemId: string;
+    subsubproblemId?: string;
     startedAtMs: number;
     endedAtMs: number;
     seconds: number;
@@ -56,10 +65,18 @@ export interface AttemptRepository {
       assetId: string;
       problemIdx: number;
       subproblemLabel: string;
+      subsubproblemLabel?: string;
     }>
   >;
   listForSessionAsset(input: {
     studySessionId: string;
     assetId: string;
-  }): Promise<Array<{ attempt: Attempt; problemIdx: number; subproblemLabel: string }>>;
+  }): Promise<
+    Array<{
+      attempt: Attempt;
+      problemIdx: number;
+      subproblemLabel: string;
+      subsubproblemLabel?: string;
+    }>
+  >;
 }

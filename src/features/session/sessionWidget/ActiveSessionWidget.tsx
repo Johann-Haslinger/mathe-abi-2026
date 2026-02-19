@@ -10,6 +10,7 @@ import { useSubjectAccentColor } from '../../../ui/hooks/useSubjectColors';
 import { formatDurationClock } from '../../../utils/time';
 import type { SessionSummaryState } from '../modals/SessionReviewModal';
 import { useStudyStore } from '../stores/studyStore';
+import { formatTaskPath } from '../utils/formatTaskPath';
 import { ActiveSessionInfoPanel } from './ActiveSessionInfoPanel';
 import { getElapsedMs } from './utils';
 
@@ -17,13 +18,25 @@ export function ActiveSessionWidget(props: { active: ActiveSession }) {
   const { active } = props;
   const navigate = useNavigate();
   const { end } = useActiveSessionStore();
-  const { studySessionId, reset } = useStudyStore();
+  const { studySessionId, reset, currentAttempt, taskDepthByAssetId, loadTaskDepth } =
+    useStudyStore();
   const subjectColor = useSubjectAccentColor(active.subjectId);
 
   const [expanded, setExpanded] = useState(false);
 
   const nowMs = useSessionClock(active);
   const { subjectName, topicName } = useSessionNames(active);
+  const depth = currentAttempt?.assetId ? taskDepthByAssetId[currentAttempt.assetId] : undefined;
+
+  useEffect(() => {
+    if (!currentAttempt?.assetId) return;
+    void loadTaskDepth(currentAttempt.assetId);
+  }, [currentAttempt?.assetId, loadTaskDepth]);
+
+  const secondaryLabel = useMemo(() => {
+    if (!currentAttempt) return topicName ?? active.topicId;
+    return `Aufgabe ${formatTaskPath(currentAttempt, depth)}`;
+  }, [active.topicId, currentAttempt, depth, topicName]);
 
   const { containerRef, pos, gripProps } = useDraggablePosition({
     width: 200,
@@ -85,9 +98,7 @@ export function ActiveSessionWidget(props: { active: ActiveSession }) {
             aria-expanded={expanded}
           >
             <div className="tabular-nums leading-3.7 text-xs font-bold">{timerLabel}</div>
-            <div className="truncate text-xs opacity-70 leading-3.7">
-              {topicName ?? active.topicId}
-            </div>
+            <div className="truncate text-xs opacity-70 leading-3.7">{secondaryLabel}</div>
           </button>
 
           <button

@@ -4,11 +4,14 @@ import { HighlightText, MutedText, PanelHeading } from './TextHighlight';
 
 export function NextView(props: {
   gripProps: DragGripProps;
+  taskDepth: 1 | 2 | 3;
   onNextSubproblem: () => void;
   onNewProblem: () => void;
   onMarkProgress: () => void;
   onFinishExercise: () => void;
 }) {
+  const showNextSub = props.taskDepth !== 1;
+  const nextSubLabel = props.taskDepth === 3 ? 'Nächste Unteraufgabe' : 'Nächste Teilaufgabe';
   return (
     <div className="space-y-3">
       <PanelViewHeader
@@ -20,11 +23,13 @@ export function NextView(props: {
         }
       />
       <div className="space-y-3 mt-6 gap-2">
-        <PrimaryButton className="w-full" onClick={props.onNextSubproblem}>
-          Nächste Teilaufgabe
-        </PrimaryButton>
+        {showNextSub ? (
+          <PrimaryButton className="w-full" onClick={props.onNextSubproblem}>
+            {nextSubLabel}
+          </PrimaryButton>
+        ) : null}
         <PrimaryButton className="w-full" onClick={props.onNewProblem}>
-          Neue Aufgabe
+          Nächste Aufgabe
         </PrimaryButton>
         <SecondaryButton className="w-full" onClick={props.onMarkProgress}>
           Zwischenstand

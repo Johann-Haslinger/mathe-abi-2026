@@ -10,6 +10,7 @@ import type {
   StudySession,
   Subject,
   Subproblem,
+  Subsubproblem,
   Topic,
 } from '../domain/models';
 import { SubjectColorId } from '../domain/models';
@@ -25,6 +26,7 @@ export class AbiDb extends Dexie {
   exercises!: Table<Exercise, string>;
   problems!: Table<Problem, string>;
   subproblems!: Table<Subproblem, string>;
+  subsubproblems!: Table<Subsubproblem, string>;
   attempts!: Table<Attempt, string>;
   inkStrokes!: Table<InkStroke, string>;
 
@@ -168,6 +170,34 @@ export class AbiDb extends Dexie {
       inkStrokes:
         'id, [studySessionId+assetId], studySessionId, assetId, attemptId, createdAtMs, updatedAtMs',
     });
+
+    this.version(9)
+      .stores({
+        subjects: 'id, name',
+        topics: 'id, subjectId, orderIndex',
+        folders: 'id, topicId, parentFolderId, orderIndex',
+        assets: 'id, subjectId, topicId, folderId, type, createdAtMs',
+        assetFiles: 'assetId',
+
+        studySessions: 'id, subjectId, topicId, startedAtMs, endedAtMs',
+        exercises: 'id, assetId, status',
+        problems: 'id, [exerciseId+idx], exerciseId, idx',
+        subproblems: 'id, [problemId+label], problemId, label',
+        subsubproblems: 'id, [subproblemId+label], subproblemId, label',
+        attempts:
+          'id, studySessionId, subproblemId, subsubproblemId, startedAtMs, endedAtMs, result',
+
+        inkStrokes:
+          'id, [studySessionId+assetId], studySessionId, assetId, attemptId, createdAtMs, updatedAtMs',
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table('exercises')
+          .toCollection()
+          .modify((ex: { taskDepth?: unknown }) => {
+            if (typeof ex.taskDepth !== 'number') ex.taskDepth = 2;
+          });
+      });
   }
 }
 
