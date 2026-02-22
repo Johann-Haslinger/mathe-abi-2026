@@ -20,8 +20,6 @@ type ConversationState = {
 
 type ConversationUiState = {
   mode: StudyAiUiMode;
-  panelX: number;
-  panelY: number;
 };
 
 type StudyAiChatState = {
@@ -33,14 +31,13 @@ type StudyAiChatState = {
   getUi: (conversationKey: string) => ConversationUiState;
 
   setUiMode: (conversationKey: string, mode: StudyAiUiMode) => void;
-  setUiPanelPos: (conversationKey: string, input: { x: number; y: number }) => void;
 
   append: (conversationKey: string, msg: Omit<StudyAiMessage, 'id' | 'createdAtMs'>) => void;
   setDocId: (conversationKey: string, docId: string | null) => void;
   clearConversation: (conversationKey: string) => void;
 };
 
-const defaultUi: ConversationUiState = { mode: 'button', panelX: 0, panelY: 0 };
+const defaultUi: ConversationUiState = { mode: 'button' };
 const defaultConversation: ConversationState = { messages: [], docId: null };
 
 export const useStudyAiChatStore = create<StudyAiChatState>()(
@@ -75,18 +72,6 @@ export const useStudyAiChatStore = create<StudyAiChatState>()(
           uiByConversation: {
             ...s.uiByConversation,
             [conversationKey]: { ...(s.uiByConversation[conversationKey] ?? defaultUi), mode },
-          },
-        })),
-
-      setUiPanelPos: (conversationKey, input) =>
-        set((s) => ({
-          uiByConversation: {
-            ...s.uiByConversation,
-            [conversationKey]: {
-              ...(s.uiByConversation[conversationKey] ?? defaultUi),
-              panelX: input.x,
-              panelY: input.y,
-            },
           },
         })),
 
@@ -126,7 +111,6 @@ export const useStudyAiChatStore = create<StudyAiChatState>()(
     }),
     {
       name: 'mathe-abi-2026:study-ai-chat',
-      version: 1,
       partialize: (s) => ({
         conversations: s.conversations,
         uiByConversation: s.uiByConversation,

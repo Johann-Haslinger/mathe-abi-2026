@@ -1,5 +1,4 @@
 import { pdfBytesToBase64 } from '../../../ink/attemptComposite';
-import { getSupabaseClient } from '../../../lib/supabaseClient';
 import type { StudyAiMessage } from '../stores/studyAiChatStore';
 
 const MAX_PDF_BYTES = 12 * 1024 * 1024;
@@ -12,7 +11,7 @@ export async function sendStudyAiMessage(input: {
   pdfData: Uint8Array | null;
   attemptImageDataUrl: string | null;
 }): Promise<{ docId: string; assistantMessage: string }> {
-  const supabase = getSupabaseClient();
+  // const supabase = getSupabaseClient();
 
   const pdfBytes = input.pdfData;
   if (!input.docId && !pdfBytes) throw new Error('PDF fehlt (docId und pdfData sind leer).');
@@ -42,13 +41,19 @@ export async function sendStudyAiMessage(input: {
   if (input.attemptImageDataUrl) body.attemptImageDataUrl = input.attemptImageDataUrl;
   console.log('body', body);
 
-  const { data, error } = await supabase.functions.invoke('study-ai', { body });
-  if (error) throw new Error(error.message || 'Edge Function Fehler');
-  if (!data || typeof data !== 'object') throw new Error('Ungültige Antwort vom Server');
+  // const { data, error } = await supabase.functions.invoke('study-ai', { body });
+  // if (error) throw new Error(error.message || 'Edge Function Fehler');
+  // if (!data || typeof data !== 'object') throw new Error('Ungültige Antwort vom Server');
 
-  const d = data as { docId?: unknown; assistantMessage?: unknown; error?: unknown };
-  if (typeof d.error === 'string' && d.error) throw new Error(d.error);
-  if (typeof d.docId !== 'string' || !d.docId) throw new Error('docId fehlt in Antwort');
-  if (typeof d.assistantMessage !== 'string') throw new Error('assistantMessage fehlt in Antwort');
-  return { docId: d.docId, assistantMessage: d.assistantMessage };
+  // const d = data as { docId?: unknown; assistantMessage?: unknown; error?: unknown };
+  // if (typeof d.error === 'string' && d.error) throw new Error(d.error);
+  // if (typeof d.docId !== 'string' || !d.docId) throw new Error('docId fehlt in Antwort');
+  // if (typeof d.assistantMessage !== 'string') throw new Error('assistantMessage fehlt in Antwort');
+
+  return {
+    docId: '123',
+    assistantMessage:
+      'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.',
+  };
+  // return { docId: d.docId, assistantMessage: d.assistantMessage };
 }

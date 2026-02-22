@@ -114,8 +114,10 @@ serve(async (req) => {
       hasPdfBase64: typeof body.pdfBase64 === 'string' && Boolean(body.pdfBase64),
       pdfBase64Chars: typeof body.pdfBase64 === 'string' ? body.pdfBase64.length : 0,
       messagesCount: body.messages.length,
-      hasAttemptImage: typeof body.attemptImageDataUrl === 'string' && Boolean(body.attemptImageDataUrl),
-      attemptImageChars: typeof body.attemptImageDataUrl === 'string' ? body.attemptImageDataUrl.length : 0,
+      hasAttemptImage:
+        typeof body.attemptImageDataUrl === 'string' && Boolean(body.attemptImageDataUrl),
+      attemptImageChars:
+        typeof body.attemptImageDataUrl === 'string' ? body.attemptImageDataUrl.length : 0,
       userAgent: req.headers.get('user-agent') ?? '',
     });
 
@@ -184,12 +186,16 @@ serve(async (req) => {
     const pdfBase64ForOpenAI = bytesToB64(pdfBytes);
 
     const attemptImageDataUrl =
-      typeof body.attemptImageDataUrl === 'string' && body.attemptImageDataUrl ? body.attemptImageDataUrl : null;
-    if (attemptImageDataUrl) log(reqId, 'attempt_image_attached', { chars: attemptImageDataUrl.length });
+      typeof body.attemptImageDataUrl === 'string' && body.attemptImageDataUrl
+        ? body.attemptImageDataUrl
+        : null;
+    if (attemptImageDataUrl)
+      log(reqId, 'attempt_image_attached', { chars: attemptImageDataUrl.length });
 
     // Attach the PDF (+ optional image) to the last user message.
     const lastUserIdx = (() => {
-      for (let i = body.messages.length - 1; i >= 0; i--) if (body.messages[i]?.role === 'user') return i;
+      for (let i = body.messages.length - 1; i >= 0; i--)
+        if (body.messages[i]?.role === 'user') return i;
       return -1;
     })();
     if (lastUserIdx === -1) return jsonResponse(400, { error: 'Kein user message gefunden' });
@@ -200,22 +206,28 @@ serve(async (req) => {
         content: [
           {
             type: 'input_text',
-            text:
-              'Du bist ein Tutor für Mathe-Abi Aufgaben. Nutze die angehängte PDF als Quelle. Antworte klar, Schritt-für-Schritt, und kurz genug zum Mitschreiben. Wenn etwas fehlt, stelle gezielte Rückfragen.',
+            text: 'Du bist ein Tutor für Mathe-Abi Aufgaben. Nutze die angehängte PDF als Quelle. Antworte klar, Schritt-für-Schritt, und kurz genug zum Mitschreiben. Wenn etwas fehlt, stelle gezielte Rückfragen.',
           },
         ],
       },
       ...body.messages.map((m, idx) => {
         const base = [{ type: 'input_text', text: m.content }];
         if (idx === lastUserIdx) {
-          base.push({ type: 'input_file', filename: pdfFilename, file_data: pdfBase64ForOpenAI });
-          if (attemptImageDataUrl) base.push({ type: 'input_image', image_url: attemptImageDataUrl, detail: 'auto' });
+          // OpenAI expects base64 PDFs as a data URL.
+          base.push({
+            type: 'input_file',
+            filename: pdfFilename,
+            file_data: `data:application/pdf;base64,${pdfBase64ForOpenAI}`,
+          });
+          if (attemptImageDataUrl)
+            base.push({ type: 'input_image', image_url: attemptImageDataUrl, detail: 'auto' });
         }
         return { role: m.role, content: base };
       }),
     ];
 
-    const model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
+    // Use a PDF-capable model by default; can be overridden via env.
+    const model = Deno.env.get('OPENAI_MODEL') || 'gpt-4o-mini';
     log(reqId, 'openai_request_start', {
       model,
       pdfFilename,
@@ -249,7 +261,11 @@ serve(async (req) => {
     const openaiJson = await openaiRes.json();
     const assistantMessage = extractAssistantText(openaiJson);
 
-    log(reqId, 'request_ok', { docId, assistantChars: assistantMessage.length, ms: Date.now() - startedAt });
+    log(reqId, 'request_ok', {
+      docId,
+      assistantChars: assistantMessage.length,
+      ms: Date.now() - startedAt,
+    });
     return jsonResponse(200, { docId, assistantMessage });
   } catch (e) {
     log(reqId, 'request_exception', {
@@ -259,4 +275,3 @@ serve(async (req) => {
     return jsonResponse(500, { error: e instanceof Error ? e.message : 'Unknown error' });
   }
 });
-
